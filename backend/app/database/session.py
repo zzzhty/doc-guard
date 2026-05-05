@@ -26,10 +26,22 @@ def init_db():
 
 def _apply_lightweight_migrations():
     inspector = inspect(engine)
-    if "scanned_commits" not in inspector.get_table_names():
-        return
+    table_names = inspector.get_table_names()
 
-    columns = {column["name"] for column in inspector.get_columns("scanned_commits")}
-    if "changed_files_json" not in columns:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE scanned_commits ADD COLUMN changed_files_json TEXT"))
+    if "scanned_commits" in table_names:
+        columns = {column["name"] for column in inspector.get_columns("scanned_commits")}
+        if "changed_files_json" not in columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE scanned_commits ADD COLUMN changed_files_json TEXT"))
+
+    if "projects" in table_names:
+        columns = {column["name"] for column in inspector.get_columns("projects")}
+        if "auth_token" not in columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE projects ADD COLUMN auth_token TEXT"))
+
+    if "doc_prs" in table_names:
+        columns = {column["name"] for column in inspector.get_columns("doc_prs")}
+        if "body" not in columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE doc_prs ADD COLUMN body TEXT"))

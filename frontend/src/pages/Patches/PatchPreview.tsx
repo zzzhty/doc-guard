@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router-dom";
+import { useCreateDocPR } from "../../hooks/useDocPrs";
 import { useApprovePatch, usePatch, useRejectPatch, useUpdatePatch } from "../../hooks/usePatches";
 
 export default function PatchPreview() {
@@ -11,6 +12,7 @@ export default function PatchPreview() {
   const updateMutation = useUpdatePatch(parsedPatchId);
   const approveMutation = useApprovePatch(parsedPatchId);
   const rejectMutation = useRejectPatch(parsedPatchId);
+  const createPrMutation = useCreateDocPR(projectId);
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
   const quality = useMemo(() => parseQualityReport(patch?.quality_report), [patch?.quality_report]);
@@ -65,8 +67,43 @@ export default function PatchPreview() {
           >
             {rejectMutation.isPending ? "Rejecting..." : "Reject"}
           </button>
+          <button
+            type="button"
+            onClick={() => createPrMutation.mutate([patch.id])}
+            disabled={createPrMutation.isPending || patch.status !== "approved"}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+          >
+            {createPrMutation.isPending ? "Creating PR..." : "Create PR"}
+          </button>
         </div>
       </div>
+      {createPrMutation.isError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {createPrMutation.error instanceof Error ? createPrMutation.error.message : "PR creation failed"}
+        </div>
+      )}
+      {createPrMutation.data && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-medium text-blue-900">{createPrMutation.data.title}</p>
+              <p className="text-sm text-blue-700 mt-1">
+                {createPrMutation.data.branch_name} · {createPrMutation.data.status}
+              </p>
+            </div>
+            {createPrMutation.data.pr_url && (
+              <a
+                href={createPrMutation.data.pr_url}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+              >
+                Open PR
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
         <DocumentPanel title="Original" content={patch.original_content || ""} />

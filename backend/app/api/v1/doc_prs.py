@@ -12,13 +12,7 @@ async def create_pr(project_id: int, data: dict, db: Session = Depends(get_db)):
     svc = DocPRService(db)
     try:
         doc_pr = await svc.create_pr(project_id, data.get("patch_ids", []))
-        return {
-            "id": doc_pr.id,
-            "project_id": doc_pr.project_id,
-            "branch_name": doc_pr.branch_name,
-            "title": doc_pr.title,
-            "status": doc_pr.status,
-        }
+        return _doc_pr_response(doc_pr)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -31,17 +25,7 @@ def list_prs(project_id: int, db: Session = Depends(get_db)):
     prs = svc.get_prs_for_project(project_id)
     return {
         "prs": [
-            {
-                "id": pr.id,
-                "project_id": pr.project_id,
-                "branch_name": pr.branch_name,
-                "pr_number": pr.pr_number,
-                "pr_url": pr.pr_url,
-                "title": pr.title,
-                "status": pr.status,
-                "source_commit": pr.source_commit,
-                "created_at": str(pr.created_at),
-            }
+            _doc_pr_response(pr)
             for pr in prs
         ],
         "total": len(prs),
@@ -56,16 +40,7 @@ def get_pr(doc_pr_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="PR not found")
     items = svc.get_pr_items(doc_pr_id)
     return {
-        "id": doc_pr.id,
-        "project_id": doc_pr.project_id,
-        "branch_name": doc_pr.branch_name,
-        "pr_number": doc_pr.pr_number,
-        "pr_url": doc_pr.pr_url,
-        "title": doc_pr.title,
-        "status": doc_pr.status,
-        "source_commit": doc_pr.source_commit,
-        "created_at": str(doc_pr.created_at),
-        "merged_at": str(doc_pr.merged_at) if doc_pr.merged_at else None,
+        **_doc_pr_response(doc_pr),
         "items": [
             {
                 "id": i.id,
@@ -85,7 +60,7 @@ def refresh_pr(doc_pr_id: int, db: Session = Depends(get_db)):
     pr = svc.refresh_status(doc_pr_id)
     if not pr:
         raise HTTPException(status_code=404, detail="PR not found")
-    return {"id": pr.id, "status": pr.status}
+    return _doc_pr_response(pr)
 
 
 @router.post("/doc-prs/{doc_pr_id}/close")
@@ -94,4 +69,21 @@ def close_pr(doc_pr_id: int, db: Session = Depends(get_db)):
     pr = svc.close_pr(doc_pr_id)
     if not pr:
         raise HTTPException(status_code=404, detail="PR not found")
-    return {"id": pr.id, "status": pr.status}
+    return _doc_pr_response(pr)
+
+
+def _doc_pr_response(doc_pr):
+    return {
+        "id": doc_pr.id,
+        "project_id": doc_pr.project_id,
+        "branch_name": doc_pr.branch_name,
+        "base_branch": doc_pr.base_branch,
+        "pr_number": doc_pr.pr_number,
+        "pr_url": doc_pr.pr_url,
+        "title": doc_pr.title,
+        "body": doc_pr.body,
+        "status": doc_pr.status,
+        "source_commit": doc_pr.source_commit,
+        "created_at": str(doc_pr.created_at),
+        "merged_at": str(doc_pr.merged_at) if doc_pr.merged_at else None,
+    }

@@ -6,26 +6,26 @@
 
 ## Current State
 
-`GiteaGitProvider` 类已有接口雏形，但 `ProjectService.get_git_provider()` 总是返回 `LocalGitProvider`。`DocPRService.create_pr()` 当前只创建本地分支和数据库记录，不 push，不调用远端 PR API，也没有保存 PR body。
+已完成。`ProjectService.get_git_provider()` 会根据项目 provider 返回 `LocalGitProvider` 或 `GiteaGitProvider`。`DocPRService.create_pr()` 会验证 approved patches、创建 `docguard/*` 分支、提交文档变更、调用 Gitea PR API，并保存 PR number、URL、title、body、status 和关联 items。
 
 ## Deliverables
 
-- `ProjectService` 根据 provider 返回 `LocalGitProvider` 或 `GiteaGitProvider`。
-- Gitea 项目接入需要保存可用连接信息，不把 token 返回给前端。
-- `DocPRService` 对 Gitea 执行 create branch、commit files、create PR。
-- `DocPR` 保存 `pr_number`、`pr_url`、`title`、`body`、`status`、`source_commit`。
-- 创建 PR 后更新 related impacts 为 `pr_created`。
+- [x] `ProjectService` 根据 provider 返回 `LocalGitProvider` 或 `GiteaGitProvider`。
+- [x] Gitea 项目接入保存可用连接信息，不把 token 返回给前端。
+- [x] `DocPRService` 对 Gitea 执行 create branch、commit files、create PR。
+- [x] `DocPR` 保存 `pr_number`、`pr_url`、`title`、`body`、`status`、`source_commit`。
+- [x] 创建 PR 后更新 related impacts 为 `pr_created`。
 
 ## Task Breakdown
 
 ### P0
 
-- 为 Gitea 接入定义最小配置：`repo_url` 解析出 base URL、owner、repo；token 来自创建项目请求或环境变量，后端不得在 response 中返回 token。
-- 修改 `ProjectService.get_git_provider(project)`：`local` 返回 `LocalGitProvider`，`gitea` 返回 `GiteaGitProvider`。
-- 修正 `GiteaGitProvider.commit_files()`：更新已有文件时需要带当前 file sha；新增文件不带 sha。
-- `DocPRService.create_pr()` 对 Gitea 调用 provider.create_branch、commit_files、create_pr。
-- 将 LLM 生成的 PR body 保存到 `DocPR`；如果模型失败，用 deterministic template fallback。
-- 创建 PR 前验证所有 patch 都属于同一 project，且状态为 `approved`。
+- [x] 为 Gitea 接入定义最小配置：`repo_url` 解析出 base URL、owner、repo；token 来自创建项目请求或环境变量，后端不得在 response 中返回 token。
+- [x] 修改 `ProjectService.get_git_provider(project)`：`local` 返回 `LocalGitProvider`，`gitea` 返回 `GiteaGitProvider`。
+- [x] 修正 `GiteaGitProvider.commit_files()`：更新已有文件时需要带当前 file sha；新增文件不带 sha。
+- [x] `DocPRService.create_pr()` 对 Gitea 调用 provider.create_branch、commit_files、create_pr。
+- [x] 将 LLM 生成的 PR body 保存到 `DocPR`；如果模型失败，用 deterministic template fallback。
+- [x] 创建 PR 前验证所有 patch 都属于同一 project，且状态为 `approved`。
 
 ### P1
 
@@ -52,10 +52,10 @@
 
 ## Tests
 
-- `ProjectService.get_git_provider()` 单元测试覆盖 local/gitea。
-- `DocPRService` 使用 fake provider 测试 create branch、commit files、create pr 调用顺序。
-- Gitea API 可用时做手动集成测试；自动测试不依赖真实 Gitea。
-- 前端 build/lint 通过。
+- [x] `ProjectService.get_git_provider()` 单元测试覆盖 local/gitea。
+- [x] `DocPRService` 使用 fake provider 测试 create branch、commit files、create pr 调用顺序。
+- [x] Gitea provider 文件更新/新增 sha 行为有单元测试；自动测试不依赖真实 Gitea。
+- [x] 前端 build/lint 通过。
 
 ## Risks
 

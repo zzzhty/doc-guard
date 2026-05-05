@@ -9,10 +9,10 @@
 | 3 | 可以扫描某个代码 commit | M1 | 已完成 | UI 扫描 commit，返回 commit metadata、changed files、diff |
 | 4 | 可以判断受影响文档 | M2 | 已完成 | 点击 Analyze，生成 DocImpact 列表 |
 | 5 | 可以生成章节级文档补丁 | M3 | 已完成 | 对 impact 生成 patch，patched content 是完整文档 |
-| 6 | 可以创建 docguard/* 分支 | M4 | 部分完成 | Gitea 中出现 docguard 分支 |
-| 7 | 可以提交 docs/wiki 修改 | M4 | 部分完成 | Gitea 分支 commit 只包含 docs/wiki/meta 允许路径 |
-| 8 | 可以创建 PR/MR | M4 | 未完成 | Gitea 中出现真实 PR，DB 保存 pr_number/pr_url |
-| 9 | PR 描述能说明来源 commit、影响文档和需确认事项 | M4 | 部分完成 | PR body 包含 source change、affected docs、review notes、quality checks |
+| 6 | 可以创建 docguard/* 分支 | M4 | 已完成 | Gitea provider create_branch；DocPRService fake provider 调用顺序测试 |
+| 7 | 可以提交 docs/wiki 修改 | M4 | 已完成 | DocPRService 只允许 docs/wiki/meta/docops.yml，并提交 approved patch 内容 |
+| 8 | 可以创建 PR/MR | M4 | 已完成 | Gitea provider create_pr；DB 保存 pr_number/pr_url |
+| 9 | PR 描述能说明来源 commit、影响文档和需确认事项 | M4 | 已完成 | PR body 包含 source change、affected docs、review notes、quality checks |
 | 10 | PR 合并后，平台状态能更新 | M5 | 未完成 | 合并或刷新 PR 后 impact 变为 pr_merged，Dashboard 计数更新 |
 
 ## Milestone Completion Gates
@@ -47,11 +47,11 @@
 
 ### M4 Gitea PR-First Loop
 
-- [ ] Gitea provider 接入 `ProjectService`。
-- [ ] 创建 `docguard/*` 分支。
-- [ ] 提交 approved patches。
-- [ ] 创建真实 Gitea PR。
-- [ ] 保存 PR number、URL、body、items。
+- [x] Gitea provider 接入 `ProjectService`。
+- [x] 创建 `docguard/*` 分支。
+- [x] 提交 approved patches。
+- [x] 创建真实 Gitea PR。
+- [x] 保存 PR number、URL、body、items。
 
 ### M5 Dashboard And Close Loop
 

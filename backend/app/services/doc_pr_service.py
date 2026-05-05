@@ -1,17 +1,26 @@
 import logging
+import json
+import re
+from pathlib import PurePosixPath
+from types import SimpleNamespace
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database.models.doc_impact import DocImpact
 from app.database.models.doc_pr import DocPR, DocPRItem
 from app.database.models.patch import Patch
 from app.database.models.project import Project
 from app.database.models.scanned_commit import ScannedCommit
+from app.git_providers import FileChange, PRInfo
 from app.git_providers.local import LocalGitProvider
 from app.services.llm_service import LLMService
 from app.services.project_service import ProjectService
 
 logger = logging.getLogger(__name__)
+
+ALLOWED_DOC_PREFIXES = ("docs/", "wiki/", "meta/")
+ALLOWED_DOC_FILES = {"docops.yml"}
 
 
 class DocPRService:
@@ -22,65 +31,83 @@ class DocPRService:
         project = self.db.query(Project).filter(Project.id == project_id).first()
         if not project:
             raise ValueError(f"Project {project_id} not found")
+        if not patch_ids:
+            raise ValueError("patch_ids is required")
 
-        patches = self.db.query(Patch).filter(Patch.id.in_(patch_ids)).all()
-        if not patches:
-            raise ValueError("No valid patches found")
+        requested_patch_ids = set(patch_ids)
+        patches = self.db.query(Patch).filter(Patch.id.in_(requested_patch_ids)).all()
+        if len(patches) != len(requested_patch_ids):
+            raise ValueError("Some patches were not found")
 
-        patches = [p for p in patches if p.status == "approved"]
-        if not patches:
-            raise ValueError("No approved patches found")
+        if any(p.status != "approved" for p in patches):
+            raise ValueError("All patches must be approved before creating a PR")
+        self._validate_document_paths([p.document_path for p in patches])
 
-        # Get source commit info
         impact_ids = [p.doc_impact_id for p in patches]
         impacts = self.db.query(DocImpact).filter(DocImpact.id.in_(impact_ids)).all()
-        commit_ids = list(set(i.commit_id for i in impacts))
-        commits = self.db.query(ScannedCommit).filter(ScannedCommit.id.in_(commit_ids)).all()
+        if len(impacts) != len(set(impact_ids)):
+            raise ValueError("Some patch impacts were not found")
+        if any(i.doc_pr_id for i in impacts):
+            raise ValueError("One or more patches already belong to a DocGuard PR")
 
-        # Build branch name
-        source_hash = commits[0].commit_hash[:7] if commits else "unknown"
-        module = impacts[0].module_name if impacts else "docs"
+        commit_ids = {i.commit_id for i in impacts}
+        if len(commit_ids) != 1:
+            raise ValueError("Patches from multiple source commits are not supported in MVP")
+        commits = self.db.query(ScannedCommit).filter(ScannedCommit.id.in_(commit_ids)).all()
+        if len(commits) != len(commit_ids):
+            raise ValueError("Source commit was not found")
+        if any(c.project_id != project.id for c in commits):
+            raise ValueError("All patches must belong to the requested project")
+
+        source_commit = commits[0]
+        source_hash = source_commit.commit_hash[:7]
+        module = self._slug(impacts[0].module_name or "docs")
         branch_name = f"docguard/update-{module}-{source_hash}"
 
-        # Build PR description via LLM
-        llm = LLMService()
         changed_files = self._collect_changed_files(commits)
         affected_docs = [p.document_path for p in patches]
         patch_summaries = [self._summarize_patch(p) for p in patches]
 
-        pr_desc = await llm.write_pr_description({
-            "commit_hash": source_hash,
-            "commit_message": commits[0].message if commits else "",
-            "changed_files": changed_files[:20],
-            "affected_docs": affected_docs,
-            "patch_summaries": patch_summaries,
-            "review_notes": ["Please verify accuracy of documentation changes"],
-        })
+        pr_desc = await self._build_pr_description(
+            module=module,
+            commit=source_commit,
+            changed_files=changed_files,
+            affected_docs=affected_docs,
+            patch_summaries=patch_summaries,
+            patches=patches,
+        )
 
-        # For local provider: create branch locally, apply patches, commit, push
         try:
             provider = ProjectService.get_git_provider(project)
-            if isinstance(provider, LocalGitProvider):
-                provider.create_branch(branch_name, project.default_branch)
-                from app.git_providers import FileChange
-                files = []
-                for p in patches:
-                    files.append(FileChange(
-                        path=p.document_path,
-                        content=p.patched_content or p.original_content or "",
-                    ))
-                commit_msg = f"docs({module}): update documentation\n\nSource commit: {commits[0].commit_hash if commits else 'unknown'}\nGenerated-by: DocGuard"
-                provider.commit_files(branch_name, commit_msg, files)
+            self._apply_patches(
+                provider=provider,
+                branch_name=branch_name,
+                base_branch=project.default_branch,
+                module=module,
+                source_commit=source_commit,
+                patches=patches,
+            )
 
-            # Create PR in DocGuard DB (PR creation on remote handled separately)
+            pr_info: PRInfo | None = None
+            if not isinstance(provider, LocalGitProvider):
+                pr_info = provider.create_pr(
+                    pr_desc.title,
+                    pr_desc.body,
+                    branch_name,
+                    project.default_branch,
+                )
+
             doc_pr = DocPR(
                 project_id=project.id,
                 provider=project.provider,
+                pr_number=pr_info.number if pr_info else None,
+                pr_url=pr_info.url if pr_info else None,
                 branch_name=branch_name,
                 base_branch=project.default_branch,
-                source_commit=commits[0].commit_hash if commits else None,
+                source_commit=source_commit.commit_hash,
                 title=pr_desc.title,
-                status="open",
+                body=pr_desc.body,
+                status=pr_info.status if pr_info else "local_branch",
             )
             self.db.add(doc_pr)
             self.db.commit()
@@ -116,15 +143,137 @@ class DocPRService:
     def _collect_changed_files(self, commits: list[ScannedCommit]) -> list[str]:
         files = set()
         for c in commits:
-            # Simple extraction from message - actual files come from scan
-            for line in c.message.split("\n"):
-                line = line.strip()
-                if "/" in line and not line.startswith("#"):
-                    pass
-        return list(files)
+            files.update(c.changed_files)
+        return sorted(files)
 
     def _summarize_patch(self, patch: Patch) -> str:
         return f"{patch.change_type}: {patch.document_path}"
+
+    def _apply_patches(
+        self,
+        provider,
+        branch_name: str,
+        base_branch: str,
+        module: str,
+        source_commit: ScannedCommit,
+        patches: list[Patch],
+    ) -> None:
+        if not provider.create_branch(branch_name, base_branch):
+            raise RuntimeError(f"Failed to create branch {branch_name}")
+
+        files = [
+            FileChange(
+                path=p.document_path,
+                content=p.patched_content if p.patched_content is not None else p.original_content or "",
+            )
+            for p in patches
+        ]
+        commit_msg = (
+            f"docs({module}): update documentation\n\n"
+            f"Source commit: {source_commit.commit_hash}\n"
+            "Generated-by: DocGuard"
+        )
+        if not provider.commit_files(branch_name, commit_msg, files):
+            raise RuntimeError(f"Failed to commit documentation changes to {branch_name}")
+
+    async def _build_pr_description(
+        self,
+        module: str,
+        commit: ScannedCommit,
+        changed_files: list[str],
+        affected_docs: list[str],
+        patch_summaries: list[str],
+        patches: list[Patch],
+    ):
+        context = {
+            "commit_hash": commit.commit_hash,
+            "commit_message": commit.message,
+            "changed_files": changed_files[:20],
+            "affected_docs": affected_docs,
+            "patch_summaries": patch_summaries,
+            "review_notes": ["Please verify accuracy of documentation changes"],
+        }
+        if settings.llm_api_key:
+            try:
+                return await LLMService().write_pr_description(context)
+            except Exception as exc:
+                logger.warning("Failed to generate PR description with LLM: %s", exc)
+
+        return SimpleNamespace(
+            title=f"[DocGuard] Update {module} documentation",
+            body=self._fallback_pr_body(
+                commit=commit,
+                changed_files=changed_files,
+                affected_docs=affected_docs,
+                patch_summaries=patch_summaries,
+                patches=patches,
+            ),
+        )
+
+    def _fallback_pr_body(
+        self,
+        commit: ScannedCommit,
+        changed_files: list[str],
+        affected_docs: list[str],
+        patch_summaries: list[str],
+        patches: list[Patch],
+    ) -> str:
+        commit_title = commit.message.splitlines()[0] if commit.message else ""
+        return "\n\n".join(
+            [
+                "## Summary\nDocGuard generated this documentation update from approved patch previews.",
+                (
+                    "## Source Change\n"
+                    f"- Source commit: `{commit.commit_hash}`\n"
+                    f"- Commit title: {commit_title or 'Not recorded'}\n"
+                    f"- Changed files:\n{self._markdown_list(changed_files)}"
+                ),
+                f"## Affected Docs\n{self._markdown_list(affected_docs)}",
+                f"## Proposed Documentation Changes\n{self._markdown_list(patch_summaries)}",
+                (
+                    "## Review Notes\n"
+                    "- Verify that the generated wording matches the source change.\n"
+                    "- Confirm examples, configuration names, and links before merge."
+                ),
+                f"## Quality Checks\n{self._quality_summary(patches)}",
+            ]
+        )
+
+    def _quality_summary(self, patches: list[Patch]) -> str:
+        lines = []
+        for patch in patches:
+            if not patch.quality_report:
+                lines.append(f"- `{patch.document_path}`: no quality report recorded")
+                continue
+            try:
+                report = json.loads(patch.quality_report)
+            except json.JSONDecodeError:
+                lines.append(f"- `{patch.document_path}`: quality report could not be parsed")
+                continue
+            score = report.get("overall_score", "n/a")
+            review = "review required" if report.get("requires_review") else "review not required"
+            issues = report.get("issues") or []
+            lines.append(f"- `{patch.document_path}`: score {score}, {review}, {len(issues)} issue(s)")
+        return "\n".join(lines) if lines else "- No quality checks recorded"
+
+    def _validate_document_paths(self, paths: list[str]) -> None:
+        for path in paths:
+            parsed = PurePosixPath(path)
+            if parsed.is_absolute() or ".." in parsed.parts:
+                raise ValueError(f"Unsafe document path: {path}")
+            if path in ALLOWED_DOC_FILES:
+                continue
+            if not path.startswith(ALLOWED_DOC_PREFIXES):
+                raise ValueError(f"Patch path is outside writable documentation roots: {path}")
+
+    def _markdown_list(self, values: list[str]) -> str:
+        if not values:
+            return "- None recorded"
+        return "\n".join(f"- `{value}`" for value in values)
+
+    def _slug(self, value: str) -> str:
+        slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+        return slug or "docs"
 
     def get_pr(self, doc_pr_id: int) -> DocPR | None:
         return self.db.query(DocPR).filter(DocPR.id == doc_pr_id).first()

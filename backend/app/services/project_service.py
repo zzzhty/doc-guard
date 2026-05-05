@@ -1,10 +1,14 @@
 import os
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database.models.project import Project
+from app.git_providers import GitProvider
+from app.git_providers.gitea import GiteaGitProvider
 from app.git_providers.local import LocalGitProvider
 from app.services.config_parser import load_docops_from_repo
 
@@ -40,6 +44,7 @@ class ProjectService:
             name=name,
             repo_url=repo_url,
             provider=provider,
+            auth_token=data.get("auth_token"),
             local_path=local_path,
             default_branch=data.get("default_branch", "main"),
             config_yaml=self._read_docops_yaml(local_path),
@@ -94,12 +99,48 @@ class ProjectService:
         return project
 
     @staticmethod
-    def get_git_provider(project: Project) -> LocalGitProvider:
-        return LocalGitProvider(project.local_path)
+    def get_git_provider(project: Project) -> GitProvider:
+        if project.provider == "local":
+            if not project.local_path:
+                raise ValueError("local_path is required for local provider")
+            return LocalGitProvider(project.local_path)
+
+        if project.provider == "gitea":
+            base_url, owner, repo = ProjectService._parse_gitea_repo_url(project.repo_url)
+            token = (project.auth_token or settings.gitea_token).strip()
+            if not token:
+                raise ValueError("Gitea token is required")
+            if settings.gitea_url:
+                base_url = settings.gitea_url.rstrip("/")
+            return GiteaGitProvider(base_url=base_url, token=token, owner=owner, repo=repo)
+
+        raise ValueError(f"{project.provider} provider is not supported in MVP")
 
     @staticmethod
-    def _get_git_provider(project: Project) -> LocalGitProvider:
-        return LocalGitProvider(project.local_path)
+    def _get_git_provider(project: Project) -> GitProvider:
+        return ProjectService.get_git_provider(project)
+
+    @staticmethod
+    def _parse_gitea_repo_url(repo_url: str) -> tuple[str, str, str]:
+        parsed = urlparse(repo_url)
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            parts = [part for part in parsed.path.strip("/").split("/") if part]
+            base_url = f"{parsed.scheme}://{parsed.netloc}"
+        elif repo_url.startswith("git@") and ":" in repo_url:
+            host, path = repo_url.split(":", 1)
+            parts = [part for part in path.strip("/").split("/") if part]
+            base_url = settings.gitea_url.rstrip("/") or f"https://{host.removeprefix('git@')}"
+        else:
+            raise ValueError("Invalid Gitea repo_url")
+
+        if len(parts) < 2:
+            raise ValueError("Gitea repo_url must include owner and repo")
+
+        owner = parts[-2]
+        repo = parts[-1].removesuffix(".git")
+        if not owner or not repo:
+            raise ValueError("Gitea repo_url must include owner and repo")
+        return base_url.rstrip("/"), owner, repo
 
     @staticmethod
     def _read_docops_yaml(local_path: str | None) -> str | None:

@@ -1,6 +1,9 @@
 from git import Repo
 
+from app.config import settings
 from app.database.models.project import Project
+from app.git_providers.gitea import GiteaGitProvider
+from app.git_providers.local import LocalGitProvider
 from app.services.project_service import ProjectService
 
 
@@ -51,3 +54,38 @@ def test_sync_project_refreshes_docops_yaml_without_remote(db_session, tmp_path)
 
     assert synced is not None
     assert "name: synced" in synced.config_yaml
+
+
+def test_get_git_provider_returns_local_provider(tmp_path):
+    Repo.init(tmp_path, initial_branch="main")
+    project = Project(
+        name="local-provider",
+        repo_url=str(tmp_path),
+        provider="local",
+        local_path=str(tmp_path),
+        default_branch="main",
+    )
+
+    provider = ProjectService.get_git_provider(project)
+
+    assert isinstance(provider, LocalGitProvider)
+    assert provider.repo_path == str(tmp_path)
+
+
+def test_get_git_provider_returns_gitea_provider(monkeypatch):
+    monkeypatch.setattr(settings, "gitea_token", "env-token")
+    monkeypatch.setattr(settings, "gitea_url", "")
+    project = Project(
+        name="gitea-provider",
+        repo_url="https://git.example.test/acme/demo.git",
+        provider="gitea",
+        default_branch="main",
+    )
+
+    provider = ProjectService.get_git_provider(project)
+
+    assert isinstance(provider, GiteaGitProvider)
+    assert provider.base_url == "https://git.example.test"
+    assert provider.owner == "acme"
+    assert provider.repo == "demo"
+    assert provider.token == "env-token"

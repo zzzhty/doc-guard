@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -18,6 +18,7 @@ class DocPR(Base):
     base_branch: Mapped[str] = mapped_column(String(255), nullable=False, default="main")
     source_commit: Mapped[str | None] = mapped_column(String(64), nullable=True)
     title: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="open")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     merged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

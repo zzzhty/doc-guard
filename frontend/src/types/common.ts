@@ -91,3 +91,23 @@ export interface Patch {
   quality_report: string | null;
   status: string;
 }
+
+export interface DocPR {
+  id: number;
+  project_id: number;
+  branch_name: string;
+  base_branch: string;
+  pr_number: number | null;
+  pr_url: string | null;
+  title: string | null;
+  body: string | null;
+  status: string;
+  source_commit: string | null;
+  created_at: string;
+  merged_at: string | null;
+}
+
+export interface DocPRListResponse {
+  prs: DocPR[];
+  total: number;
+}

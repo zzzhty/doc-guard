@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import base64
 import httpx
 
 from app.git_providers import CommitInfo, FileChange, FileInfo, GitProvider, PRInfo
@@ -100,12 +101,22 @@ class GiteaGitProvider(GitProvider):
     def commit_files(self, branch: str, message: str, files: list[FileChange]) -> bool:
         try:
             for f in files:
-                content_b64 = __import__("base64").b64encode(f.content.encode()).decode()
-                self._request("POST", f"/contents/{f.path}", {
+                content_b64 = base64.b64encode(f.content.encode()).decode()
+                payload = {
                     "branch": branch,
                     "content": content_b64,
                     "message": message,
-                })
+                }
+                method = "POST"
+                try:
+                    current = self._request("GET", f"/contents/{f.path}?ref={branch}")
+                    if isinstance(current, dict) and current.get("sha"):
+                        payload["sha"] = current["sha"]
+                        method = "PUT"
+                except Exception:
+                    pass
+
+                self._request(method, f"/contents/{f.path}", payload)
             return True
         except Exception:
             return False
