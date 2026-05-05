@@ -37,7 +37,7 @@ async def analyze_commit(project_id: int, commit_id: int, db: Session = Depends(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.put("/{project_id}/impacts/{impact_id}/status", response_model=DocImpactResponse)
@@ -48,7 +48,10 @@ def update_impact_status(
     db: Session = Depends(get_db),
 ):
     svc = ImpactService(db)
-    impact = svc.update_impact_status(impact_id, data.status)
+    try:
+        impact = svc.update_impact_status(impact_id, data.status)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not impact:
         raise HTTPException(status_code=404, detail="Impact not found")
     return impact

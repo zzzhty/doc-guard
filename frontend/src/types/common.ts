@@ -59,3 +59,23 @@ export interface DocContent {
   path: string;
   content: string;
 }
+
+export interface DocImpact {
+  id: number;
+  commit_id: number;
+  document_path: string;
+  module_name: string;
+  impact_level: "high" | "medium" | "low" | string;
+  reason: string | null;
+  confidence: number;
+  patch_id: number | null;
+  doc_pr_id: number | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocImpactListResponse {
+  impacts: DocImpact[];
+  total: number;
+}

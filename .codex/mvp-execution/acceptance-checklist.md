@@ -7,7 +7,7 @@
 | 1 | 可以接入一个真实 Git 项目 | M1 | 已完成 | UI 创建 local 项目，后端保存 Project，显示 docops 状态 |
 | 2 | 可以读取目标项目的代码和文档 | M1 | 已完成 | 打开文档树和文档内容；commit diff 可查看 |
 | 3 | 可以扫描某个代码 commit | M1 | 已完成 | UI 扫描 commit，返回 commit metadata、changed files、diff |
-| 4 | 可以判断受影响文档 | M2 | 部分完成 | 点击 Analyze，生成 DocImpact 列表 |
+| 4 | 可以判断受影响文档 | M2 | 已完成 | 点击 Analyze，生成 DocImpact 列表 |
 | 5 | 可以生成章节级文档补丁 | M3 | 部分完成 | 对 impact 生成 patch，patched content 是完整文档 |
 | 6 | 可以创建 docguard/* 分支 | M4 | 部分完成 | Gitea 中出现 docguard 分支 |
 | 7 | 可以提交 docs/wiki 修改 | M4 | 部分完成 | Gitea 分支 commit 只包含 docs/wiki/meta 允许路径 |
@@ -33,10 +33,10 @@
 
 ### M2 Impact Analysis Loop
 
-- [ ] commit detail 可触发 impact analysis。
-- [ ] 有 docops 时按模块匹配候选文档。
-- [ ] 无 docops 时有降级召回。
-- [ ] 用户可标记 ignored/false_positive。
+- [x] commit detail 可触发 impact analysis。
+- [x] 有 docops 时按模块匹配候选文档。
+- [x] 无 docops 时有降级召回。
+- [x] 用户可标记 ignored/false_positive。
 
 ### M3 Patch Preview And Quality Gate
 

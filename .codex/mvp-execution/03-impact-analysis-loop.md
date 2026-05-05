@@ -6,32 +6,32 @@
 
 ## Current State
 
-后端已有 `ImpactService`、`ModuleMatcher`、LLM `ChangeInterpreter` 和 `ImpactAnalyzer`。当前问题是无 `docops.yml` 时候选文档为空，前端没有分析入口和影响结果页面，LLM 失败状态对用户不可见。
+已完成。后端 impact analysis 会复用已有结果、使用 docops 候选文档、在缺少 docops 时执行路径相似度降级召回，并在无 LLM key 时生成保守 heuristic impact。前端 commit detail 已提供 Analyze Impact、impact 列表和 ignored/false_positive 状态操作。
 
 ## Deliverables
 
-- commit detail 页面提供 “Analyze Impact” 按钮。
-- 后端分析结果可重复查询，不重复创建同一 commit/document impact。
-- 无 `docops.yml` 时提供文件名/路径相似度降级召回。
-- impact 列表支持 ignore 和 false positive。
-- LLM/API key 缺失、候选为空、调用失败都有明确 UI 状态。
+- commit detail 页面提供 “Analyze Impact” 按钮。已完成。
+- 后端分析结果可重复查询，不重复创建同一 commit/document impact。已完成。
+- 无 `docops.yml` 时提供文件名/路径相似度降级召回。已完成。
+- impact 列表支持 ignore 和 false positive。已完成。
+- LLM/API key 缺失、候选为空、调用失败都有明确 UI 状态。已完成。
 
 ## Task Breakdown
 
 ### P0
 
-- 在 `ChangeDetail` 中调用 `POST /projects/{id}/changes/{commit_id}/analyze`。
-- 前端新增 impact API/hook/types，显示 `document_path`、`module_name`、`impact_level`、`reason`、`confidence`、`status`。
-- 后端 `ImpactService.analyze_commit()` 先检查已有 impacts；已有结果时返回已有记录或提供明确 re-analyze 参数。
-- 增加降级候选召回：当 `docops.yml` 缺失或模块无匹配时，扫描 `docs/wiki` 中的 `.md/.yml/.yaml`，用 changed files 的目录名、文件名、模块词匹配候选文档。
-- 分析失败时设置 `ScannedCommit.analysis_status = failed`，并返回可读错误。
+- 在 `ChangeDetail` 中调用 `POST /projects/{id}/changes/{commit_id}/analyze`。已完成。
+- 前端新增 impact API/hook/types，显示 `document_path`、`module_name`、`impact_level`、`reason`、`confidence`、`status`。已完成。
+- 后端 `ImpactService.analyze_commit()` 先检查已有 impacts；已有结果时返回已有记录。已完成。
+- 增加降级候选召回：当 `docops.yml` 缺失或模块无匹配时，扫描 `docs/wiki` 中的 `.md/.yml/.yaml`，用 changed files 的目录名、文件名、模块词匹配候选文档。已完成。
+- 分析失败时设置 `ScannedCommit.analysis_status = failed`，并返回可读错误。已完成。
 
 ### P1
 
-- 增加 impact 状态更新按钮：`ignored`、`false_positive`。
-- 按影响等级排序：high、medium、low，再按创建时间。
-- 在 UI 中显示 “No affected docs found” 的空态，不把空结果当错误。
-- 将 `ChangeInterpreter` 的 summary 保存到 commit 或单独字段，供详情页展示。
+- 增加 impact 状态更新按钮：`ignored`、`false_positive`。已完成。
+- 按影响等级排序：high、medium、low，再按创建时间。已完成。
+- 在 UI 中显示 “No affected docs found” 的空态，不把空结果当错误。已完成。
+- 将 `ChangeInterpreter` 的 summary 保存到 commit 或单独字段，供详情页展示。后续优化项。
 
 ## Interfaces
 

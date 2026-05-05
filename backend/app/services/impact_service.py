@@ -1,8 +1,11 @@
 import logging
 from datetime import datetime
+from pathlib import Path
 
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database.models.doc_impact import DocImpact
 from app.database.models.project import Project
 from app.database.models.scanned_commit import ScannedCommit
@@ -24,6 +27,13 @@ class ImpactService:
         if not commit:
             raise ValueError(f"Commit {commit_id} not found")
 
+        existing = self.db.query(DocImpact).filter(DocImpact.commit_id == commit.id).all()
+        if existing:
+            if commit.analysis_status != "completed":
+                commit.analysis_status = "completed"
+                self.db.commit()
+            return existing
+
         commit.analysis_status = "analyzing"
         self.db.commit()
 
@@ -32,7 +42,7 @@ class ImpactService:
             scanner = CommitScanner(self.db)
             diff = scanner.get_commit_diff(commit_id)
 
-            changed_files = self._extract_changed_files(diff)
+            changed_files = commit.changed_files or self._extract_changed_files(diff)
 
             config = load_docops_from_repo(project.local_path)
             if not config:
@@ -42,23 +52,38 @@ class ImpactService:
 
             matcher = ModuleMatcher(config)
             candidate_docs = matcher.find_candidate_docs(changed_files)
-            all_candidate_docs = matcher.find_affected_docs(changed_files)
 
             doc_scanner = DocScanner(project.local_path)
-            existing_docs = [d.path for d in doc_scanner.scan_all()["docs"] + doc_scanner.scan_all()["wiki"]]
+            scanned_docs = doc_scanner.scan_all()
+            existing_docs = [d.path for d in scanned_docs["docs"] + scanned_docs["wiki"]]
+            all_candidate_docs = matcher.find_affected_docs(changed_files)
 
-            if not existing_docs:
-                all_candidate_docs = []
+            if existing_docs and not candidate_docs:
+                fallback_docs = self._find_fallback_candidate_docs(changed_files, existing_docs)
+                all_candidate_docs = fallback_docs
+                if fallback_docs:
+                    candidate_docs = [
+                        {
+                            "module": "general",
+                            "owner": "",
+                            "changed_files": changed_files,
+                            "candidate_docs": fallback_docs,
+                        }
+                    ]
+
+            if not existing_docs or not candidate_docs:
+                commit.analysis_status = "completed"
+                self.db.commit()
+                return []
+
+            if not settings.llm_api_key:
+                impacts = self._create_heuristic_impacts(commit, candidate_docs, existing_docs)
+                commit.analysis_status = "completed"
+                self.db.commit()
+                return impacts
 
             llm = LLMService()
-
-            # Step 1: Interpret the change
-            interpretation = await llm.interpret_change(
-                diff=diff,
-                commit_message=commit.message,
-            )
-
-            # Step 2: Analyze impact for each module
+            interpretation = await llm.interpret_change(diff=diff, commit_message=commit.message)
             impacts = []
             for mod_info in candidate_docs:
                 result = await llm.analyze_impact({
@@ -116,7 +141,7 @@ class ImpactService:
         except Exception as e:
             commit.analysis_status = "failed"
             self.db.commit()
-            raise e
+            raise RuntimeError(f"Impact analysis failed: {e}") from e
 
     def _extract_changed_files(self, diff: str) -> list[str]:
         files = []
@@ -128,7 +153,61 @@ class ImpactService:
                     files.append(fpath)
             elif line.startswith("--- a/") or line.startswith("+++ b/"):
                 pass
-        return list(set(files))
+        return sorted(set(files))
+
+    def _find_fallback_candidate_docs(self, changed_files: list[str], existing_docs: list[str]) -> list[str]:
+        changed_tokens = self._path_tokens(changed_files)
+        if not changed_tokens:
+            return []
+
+        candidates = []
+        for doc_path in existing_docs:
+            doc_tokens = self._path_tokens([doc_path])
+            if changed_tokens.intersection(doc_tokens):
+                candidates.append(doc_path)
+        return sorted(set(candidates))
+
+    def _path_tokens(self, paths: list[str]) -> set[str]:
+        tokens = set()
+        for value in paths:
+            path = Path(value)
+            for part in path.parts:
+                for token in part.replace("-", "_").split("_"):
+                    stem = Path(token).stem.lower()
+                    if stem and stem not in {"src", "app", "tests", "docs", "wiki", "md", "py"}:
+                        tokens.add(stem)
+        return tokens
+
+    def _create_heuristic_impacts(
+        self,
+        commit: ScannedCommit,
+        candidate_docs: list[dict],
+        existing_docs: list[str],
+    ) -> list[DocImpact]:
+        impacts = []
+        seen = set()
+        existing = set(existing_docs)
+        for mod_info in candidate_docs:
+            for document_path in mod_info["candidate_docs"]:
+                if document_path in seen or document_path not in existing:
+                    continue
+                seen.add(document_path)
+                module_name = mod_info["module"]
+                impact = DocImpact(
+                    commit_id=commit.id,
+                    document_path=document_path,
+                    module_name=module_name,
+                    impact_level="medium",
+                    reason=(
+                        "Candidate document matched changed files via docops or path similarity. "
+                        "LLM_API_KEY is not configured, so this is a conservative heuristic impact."
+                    ),
+                    confidence=0.5,
+                    status="pending_analysis",
+                )
+                self.db.add(impact)
+                impacts.append(impact)
+        return impacts
 
     def get_impacts(self, project_id: int, status: str | None = None) -> list[DocImpact]:
         commit_ids = (
@@ -139,12 +218,21 @@ class ImpactService:
         q = self.db.query(DocImpact).filter(DocImpact.commit_id.in_(commit_ids))
         if status:
             q = q.filter(DocImpact.status == status)
-        return q.order_by(DocImpact.impact_level.desc(), DocImpact.created_at.desc()).all()
+        impact_order = case(
+            (DocImpact.impact_level == "high", 0),
+            (DocImpact.impact_level == "medium", 1),
+            (DocImpact.impact_level == "low", 2),
+            else_=3,
+        )
+        return q.order_by(impact_order, DocImpact.created_at.desc()).all()
 
     def get_impact(self, impact_id: int) -> DocImpact | None:
         return self.db.query(DocImpact).filter(DocImpact.id == impact_id).first()
 
     def update_impact_status(self, impact_id: int, status: str) -> DocImpact | None:
+        allowed_statuses = {"pending_analysis", "ignored", "false_positive"}
+        if status not in allowed_statuses:
+            raise ValueError(f"Unsupported impact status: {status}")
         impact = self.get_impact(impact_id)
         if not impact:
             return None
