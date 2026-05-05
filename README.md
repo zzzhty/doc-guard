@@ -229,12 +229,65 @@ MVP 页面目标：
 
 ## Development Commands
 
+推荐使用 runtime 脚本一键启动本地前后端：
+
+```bash
+./runtime/docguard init
+./runtime/docguard start
+./runtime/docguard status
+./runtime/docguard logs
+./runtime/docguard stop
+```
+
+runtime 配置保存到 `$HOME/.local/docguard/config.env`，日志保存到 `$HOME/.local/docguard/logs`，pid 文件保存到 `$HOME/.local/docguard/run`。默认后端运行在 `127.0.0.1:8000`，前端运行在 `127.0.0.1:5173`，前端 `/api` 会代理到配置中的后端地址。
+
+如果希望直接执行 `docguard` 命令，可安装用户级软链接：
+
+```bash
+./install.sh
+docguard start
+docguard status
+```
+
+默认链接位置是 `$HOME/.local/bin/docguard`。如果 `$HOME/.local/bin` 不在 `PATH`，脚本会打印需要加入 shell 配置的 `export PATH=...`。
+
+可用命令：
+
+- `./runtime/docguard init [--force]`：创建或重置本地 runtime 配置。
+- `./runtime/docguard start`：后台启动 backend 和 frontend。
+- `./runtime/docguard up`：前台启动 backend 和 frontend，适合 systemd 调用。
+- `./runtime/docguard stop`：停止后台进程。
+- `./runtime/docguard restart`：重启后台进程。
+- `./runtime/docguard status`：查看进程、HTTP 健康状态、配置和日志路径。
+- `./runtime/docguard logs [backend|frontend]`：查看日志。
+- `./runtime/docguard install-user-bin [--force]`：安装 `docguard` 命令到 `$HOME/.local/bin`。
+- `./runtime/docguard uninstall-user-bin`：删除用户级 `docguard` 命令软链接。
+- `./runtime/docguard install-user-service`：安装并启动 `systemd --user` 服务。
+- `./runtime/docguard uninstall-user-service`：卸载 `systemd --user` 服务。
+
+根目录的 `install.sh` 和 `uninstall.sh` 是对 `runtime/docguard install-user-bin` / `uninstall-user-bin` 的薄封装，便于直接安装或移除 `docguard` 命令。
+
+systemd 自启动：
+
+```bash
+./runtime/docguard install-user-service
+systemctl --user status docguard.service
+```
+
+如需开机后自动拉起 user service，确保系统启用了用户 linger：
+
+```bash
+loginctl enable-linger "$USER"
+```
+
+手动启动命令仍然可用。
+
 Backend:
 
 ```bash
 cd backend
 uv sync
-uv run uvicorn app.main:app --reload
+uv run python -m uvicorn app.main:app --reload
 uv run ruff check app tests
 uv run --all-groups python -m pytest
 ```

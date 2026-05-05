@@ -9,7 +9,7 @@ Frontend code lives in `frontend/src`: shared API clients in `api`, reusable UI 
 ## Build, Test, and Development Commands
 
 - `cd backend && uv sync`: install backend dependencies.
-- `cd backend && uv run uvicorn app.main:app --reload`: run the FastAPI API on port `8000`.
+- `cd backend && uv run python -m uvicorn app.main:app --reload`: run the FastAPI API on port `8000`.
 - `cd backend && uv run --all-groups python -m pytest`: run backend tests.
 - `cd backend && uv run ruff check app tests`: lint backend Python.
 - `cd frontend && pnpm install`: install frontend dependencies.
