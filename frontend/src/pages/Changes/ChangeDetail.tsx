@@ -1,13 +1,16 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useChange } from "../../hooks/useChanges";
 import { useAnalyzeCommit, useImpacts, useUpdateImpactStatus } from "../../hooks/useImpacts";
+import { useGeneratePatch } from "../../hooks/usePatches";
 
 export default function ChangeDetail() {
   const { id, commitId } = useParams<{ id: string; commitId: string }>();
+  const navigate = useNavigate();
   const projectId = Number(id);
   const { data: commit, isLoading, error } = useChange(projectId, Number(commitId));
   const analyzeMutation = useAnalyzeCommit(projectId, Number(commitId));
   const updateImpactStatus = useUpdateImpactStatus(projectId);
+  const generatePatch = useGeneratePatch(projectId);
   const { data: impactData, isLoading: isImpactsLoading } = useImpacts(projectId);
 
   if (isLoading) {
@@ -48,6 +51,11 @@ export default function ChangeDetail() {
       {analyzeMutation.isError && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {analyzeMutation.error instanceof Error ? analyzeMutation.error.message : "Impact analysis failed"}
+        </div>
+      )}
+      {generatePatch.isError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {generatePatch.error instanceof Error ? generatePatch.error.message : "Patch generation failed"}
         </div>
       )}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -114,6 +122,30 @@ export default function ChangeDetail() {
                   </div>
                   {impact.reason && <p className="text-sm text-gray-700 mt-3">{impact.reason}</p>}
                   <div className="flex gap-2 mt-4">
+                    {impact.patch_id ? (
+                      <Link
+                        to={`/projects/${projectId}/patches/${impact.patch_id}`}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                      >
+                        View Patch
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={generatePatch.isPending}
+                        onClick={() =>
+                          generatePatch.mutate(
+                            { impactId: impact.id },
+                            {
+                              onSuccess: (patch) => navigate(`/projects/${projectId}/patches/${patch.id}`),
+                            },
+                          )
+                        }
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                      >
+                        {generatePatch.isPending ? "Generating..." : "Generate Patch"}
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled={updateImpactStatus.isPending}

@@ -6,33 +6,33 @@
 
 ## Current State
 
-后端已有 `PatchService`、`Patch` 模型、`PatchWriter` 和 `DocReviewer`。关键风险是当前 LLM 返回的 `new_content` 可能被当成完整文件写入，导致章节片段覆盖整篇文档。前端没有 patch API、预览页和编辑流。
+已完成。`PatchService` 会把章节级结果合并回完整文档，章节未命中时追加 review section，缺少 LLM key 时生成保守人工 review patch。前端已提供 patch preview 页面，支持原文、补丁、diff、质量报告、Markdown 预览、编辑、approve/reject。
 
 ## Deliverables
 
-- 修复 patch 合并语义：LLM 输出章节内容，后端合并回原始完整文档。
-- Patch 预览页显示原文、patched content、unified diff、quality report。
-- 用户可以编辑 patched content，重新生成 diff。
-- 用户可以 approve/reject；未 approve 不能创建 PR。
-- quality gate 对低分或 error 级问题给出阻断或强 review 标记。
+- 修复 patch 合并语义：LLM 输出章节内容，后端合并回原始完整文档。已完成。
+- Patch 预览页显示原文、patched content、unified diff、quality report。已完成。
+- 用户可以编辑 patched content，重新生成 diff。已完成。
+- 用户可以 approve/reject；未 approve 不能创建 PR。已完成。
+- quality gate 对低分或 error 级问题给出阻断或强 review 标记。已完成。
 
 ## Task Breakdown
 
 ### P0
 
-- 修改 `PatchService.generate_patch()`：对 `update_section` 使用 `apply_patch_to_section(original_content, target_section_heading, new_content)` 生成完整 `patched_content`。
-- 如果 `target_section_heading` 未命中，默认改为 `append_section` 或返回需要人工选择章节的错误，不允许覆盖整篇。
-- 为 `append_section` 定义最小规则：追加到文档末尾，标题由 LLM 返回或使用 `## Documentation Update`。
-- 为 `create_wiki_note` 定义最小规则：生成新 wiki 文件路径，但本阶段先只允许预览，不直接写入。
-- 前端新增 patch API/hook/types，支持 generate、get、update、approve、reject。
-- 新增 patch preview 页面，入口来自 impact list。
+- 修改 `PatchService.generate_patch()`：对 `update_section` 使用 `apply_patch_to_section(original_content, target_section_heading, new_content)` 生成完整 `patched_content`。已完成。
+- 如果 `target_section_heading` 未命中，默认改为 `append_section`，不允许覆盖整篇。已完成。
+- 为 `append_section` 定义最小规则：追加到文档末尾，标题由 LLM 返回或使用 `## DocGuard Review Required`。已完成。
+- 为 `create_wiki_note` 定义最小规则：生成新 wiki 文件路径，但本阶段先只允许预览，不直接写入。后续优化项。
+- 前端新增 patch API/hook/types，支持 generate、get、update、approve、reject。已完成。
+- 新增 patch preview 页面，入口来自 impact list。已完成。
 
 ### P1
 
-- 在 preview 页面加入简单 Markdown 预览。
-- 质量报告以结构化 JSON 展示 issues、score、requires_review。
-- 对 `review.requires_review = true` 的 patch 显示强 review 提示，但仍允许 approve；创建 PR 时写入 PR review notes。
-- 支持 `mark_stale`：给文档添加可 review 的过期标记或 frontmatter 字段。
+- 在 preview 页面加入简单 Markdown 预览。已完成。
+- 质量报告以结构化 JSON 展示 issues、score、requires_review。已完成。
+- 对 `review.requires_review = true` 的 patch 显示强 review 提示，但仍允许 approve；创建 PR 时写入 PR review notes。已完成。
+- 支持 `mark_stale`：给文档添加可 review 的过期标记。已完成。
 
 ## Interfaces
 

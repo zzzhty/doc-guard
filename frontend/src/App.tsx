@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import ChangeDetail from "./pages/Changes/ChangeDetail";
 import Dashboard from "./pages/Dashboard";
+import PatchPreview from "./pages/Patches/PatchPreview";
 import ProjectConnect from "./pages/Projects/ProjectConnect";
 import ProjectDetail from "./pages/Projects/ProjectDetail";
 import ProjectList from "./pages/Projects/ProjectList";
@@ -16,6 +17,7 @@ function App() {
         <Route path="/projects/connect" element={<ProjectConnect />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
         <Route path="/projects/:id/changes/:commitId" element={<ChangeDetail />} />
+        <Route path="/projects/:id/patches/:patchId" element={<PatchPreview />} />
       </Route>
     </Routes>
   );

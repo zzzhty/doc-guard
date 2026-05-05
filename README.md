@@ -106,6 +106,7 @@ modules:
 - `GiteaGitProvider` 有 API 操作骨架，包括分支、文件提交和 PR 创建，但尚未接入 provider 工厂。
 - `docops.yml` 解析、模块匹配、文档扫描、commit 扫描、impact、patch、Doc PR 模型与服务已有初版。
 - 文档影响分析已支持 docops 候选、无 docops 路径相似度降级、重复分析复用结果、无 LLM key 的保守 heuristic 结果。
+- 补丁生成已保证输出完整文档，支持章节替换、未命中章节时追加 review section、编辑、approve/reject 和质量报告预览。
 - 前端已有 Dashboard、项目列表、项目接入、项目详情、docops 状态、文档树/内容浏览、commit 扫描列表和 commit detail。
 - 本地只读闭环已支持扫描指定 commit 和最近 commit，并保存 changed files。
 - 后端已建立最小测试基线，覆盖 `docops.yml` 解析、模块匹配、文档工具和 `/health`。
@@ -113,7 +114,7 @@ modules:
 主要缺口：
 
 - `ProjectService.get_git_provider()` 目前总是返回 `LocalGitProvider`，Gitea/GitLab/GitHub UI 选项尚不可用。
-- 前端仍缺少补丁预览和 PR 管理页。
+- 前端仍缺少 PR 管理页。
 - Patch 生成存在关键风险：章节内容可能被当成完整文件提交，必须先修复。
 - Webhook 只有占位日志，PR 状态无法回流到文档债务看板。
 - 后端测试仍偏少，尚未覆盖数据库服务、Git provider 和 LLM fallback 流程。
@@ -144,7 +145,7 @@ modules:
 | M0 Engineering Baseline | 修复 lint/test 基线 | 已完成：后端 ruff/test 和前端 build/lint 通过 |
 | M1 Local Readonly Loop | 本地项目只读闭环 | 已完成：接入项目、读取 docops、浏览 docs/wiki、查看 commit diff |
 | M2 Impact Analysis Loop | 文档影响分析 | 已完成：commit detail 可触发分析并展示影响文档、等级、原因 |
-| M3 Patch Preview And Quality Gate | 补丁预览与质量门禁 | 生成完整文档 patch，支持预览、编辑、approve/reject |
+| M3 Patch Preview And Quality Gate | 补丁预览与质量门禁 | 已完成：生成完整文档 patch，支持预览、编辑、approve/reject |
 | M4 Gitea PR-First Loop | Gitea PR 创建 | 创建 `docguard/*` 分支、提交文档修改、创建真实 Gitea PR |
 | M5 Dashboard And Close Loop | 看板和状态闭环 | PR 合并/关闭后更新 impact 状态和 Dashboard |
 
@@ -255,7 +256,7 @@ pnpm lint
 - `cd frontend && pnpm build`：通过。
 - `cd frontend && pnpm lint`：通过。
 - `cd backend && uv run ruff check app tests`：通过。
-- `cd backend && uv run --all-groups python -m pytest`：通过，23 个测试。
+- `cd backend && uv run --all-groups python -m pytest`：通过，27 个测试。
 
 ## Documentation Map
 

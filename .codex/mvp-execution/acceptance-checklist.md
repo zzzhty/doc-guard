@@ -8,7 +8,7 @@
 | 2 | 可以读取目标项目的代码和文档 | M1 | 已完成 | 打开文档树和文档内容；commit diff 可查看 |
 | 3 | 可以扫描某个代码 commit | M1 | 已完成 | UI 扫描 commit，返回 commit metadata、changed files、diff |
 | 4 | 可以判断受影响文档 | M2 | 已完成 | 点击 Analyze，生成 DocImpact 列表 |
-| 5 | 可以生成章节级文档补丁 | M3 | 部分完成 | 对 impact 生成 patch，patched content 是完整文档 |
+| 5 | 可以生成章节级文档补丁 | M3 | 已完成 | 对 impact 生成 patch，patched content 是完整文档 |
 | 6 | 可以创建 docguard/* 分支 | M4 | 部分完成 | Gitea 中出现 docguard 分支 |
 | 7 | 可以提交 docs/wiki 修改 | M4 | 部分完成 | Gitea 分支 commit 只包含 docs/wiki/meta 允许路径 |
 | 8 | 可以创建 PR/MR | M4 | 未完成 | Gitea 中出现真实 PR，DB 保存 pr_number/pr_url |
@@ -40,10 +40,10 @@
 
 ### M3 Patch Preview And Quality Gate
 
-- [ ] Patch 合并回完整文档。
-- [ ] UI 显示原文、补丁、diff、质量报告。
-- [ ] 用户可编辑、approve、reject。
-- [ ] rejected 或未 approved patch 不能创建 PR。
+- [x] Patch 合并回完整文档。
+- [x] UI 显示原文、补丁、diff、质量报告。
+- [x] 用户可编辑、approve、reject。
+- [x] rejected 或未 approved patch 不能创建 PR。
 
 ### M4 Gitea PR-First Loop
 

@@ -1,10 +1,12 @@
 import json
 import logging
 from datetime import datetime
+from types import SimpleNamespace
 
 from sqlalchemy.orm import Session
 
-from app.core.doc_utils import extract_sections, generate_unified_diff
+from app.config import settings
+from app.core.doc_utils import apply_patch_to_section, extract_sections, find_section_by_heading, generate_unified_diff
 from app.database.models.doc_impact import DocImpact
 from app.database.models.patch import Patch
 from app.database.models.project import Project
@@ -40,23 +42,20 @@ class PatchService:
             f"[{s['heading']}]\n{s['content'][:500]}" for s in sections[:10]
         )
 
-        llm = LLMService()
-
-        # Generate patch
-        patch_result = await llm.generate_patch({
-            "original": sections_text if sections_text else original_content[:3000],
-            "diff": code_diff[:3000],
-            "change_type": change_type,
-        })
-
-        # Build patched content
-        patched_content = patch_result.new_content if patch_result.new_content else None
-
-        # Review the patch
-        review = await llm.review_patch(
-            original=sections_text[:2000],
-            patched=patched_content[:2000] if patched_content else "",
+        patch_result, effective_change_type = await self._generate_patch_result(
+            original=sections_text if sections_text else original_content[:3000],
+            code_diff=code_diff[:3000],
             change_type=change_type,
+        )
+        patched_content, effective_change_type = self._build_patched_content(
+            original_content=original_content,
+            patch_result=patch_result,
+            change_type=effective_change_type,
+        )
+        review = await self._review_patch(
+            original=sections_text[:2000],
+            patched=patched_content[:2000],
+            change_type=effective_change_type,
         )
 
         # Generate diff
@@ -69,9 +68,9 @@ class PatchService:
         patch = Patch(
             doc_impact_id=impact.id,
             document_path=impact.document_path,
-            change_type=change_type,
+            change_type=effective_change_type,
             original_content=original_content[:10000],
-            patched_content=patched_content[:10000] if patched_content else None,
+            patched_content=patched_content[:10000],
             diff=diff_text[:10000],
             quality_report=json.dumps({
                 "issues": review.issues,
@@ -89,6 +88,67 @@ class PatchService:
         self.db.commit()
 
         return patch
+
+    async def _generate_patch_result(self, original: str, code_diff: str, change_type: str):
+        if not settings.llm_api_key:
+            return (
+                SimpleNamespace(
+                    target_section_heading="",
+                    new_content=(
+                        "DocGuard identified this document as potentially affected by the source change. "
+                        "LLM_API_KEY is not configured, so this patch is a review marker rather than a generated "
+                        "documentation rewrite."
+                    ),
+                    change_summary="Mark document for manual review",
+                    source_commit_referenced=False,
+                ),
+                "append_section" if change_type == "update_section" else change_type,
+            )
+
+        llm = LLMService()
+        return (
+            await llm.generate_patch(
+                {
+                    "original": original,
+                    "diff": code_diff,
+                    "change_type": change_type,
+                }
+            ),
+            change_type,
+        )
+
+    def _build_patched_content(self, original_content: str, patch_result, change_type: str) -> tuple[str, str]:
+        new_content = patch_result.new_content or ""
+        heading = patch_result.target_section_heading or ""
+
+        if change_type == "update_section" and heading and find_section_by_heading(original_content, heading):
+            return apply_patch_to_section(original_content, heading, new_content), "update_section"
+
+        if change_type == "mark_stale":
+            marker = "> [!WARNING]\n> DocGuard marked this document as potentially stale for manual review.\n"
+            return f"{marker}\n{original_content}" if original_content else marker, "mark_stale"
+
+        section_heading = heading if heading.startswith("#") else f"## {heading or 'DocGuard Review Required'}"
+        section = f"{section_heading}\n\n{new_content}".strip()
+        separator = "\n\n" if original_content.strip() else ""
+        return f"{original_content.rstrip()}{separator}{section}\n", "append_section"
+
+    async def _review_patch(self, original: str, patched: str, change_type: str):
+        if not settings.llm_api_key:
+            return SimpleNamespace(
+                issues=[
+                    {
+                        "type": "manual_review",
+                        "severity": "warning",
+                        "description": "LLM_API_KEY is not configured; patch requires human review.",
+                    }
+                ],
+                overall_score=70,
+                requires_review=True,
+            )
+
+        llm = LLMService()
+        return await llm.review_patch(original=original, patched=patched, change_type=change_type)
 
     def get_patch(self, patch_id: int) -> Patch | None:
         return self.db.query(Patch).filter(Patch.id == patch_id).first()
@@ -121,12 +181,18 @@ class PatchService:
             content,
             filename=patch.document_path,
         )
+        patch.status = "edited"
         patch.updated_at = datetime.utcnow()
         self.db.commit()
         self.db.refresh(patch)
         return patch
 
     def approve_patch(self, patch_id: int) -> Patch | None:
+        patch = self.get_patch(patch_id)
+        if not patch:
+            return None
+        if patch.status not in {"pending", "edited"}:
+            raise ValueError(f"Patch cannot be approved from status: {patch.status}")
         return self._set_patch_status(patch_id, "approved")
 
     def reject_patch(self, patch_id: int) -> Patch | None:

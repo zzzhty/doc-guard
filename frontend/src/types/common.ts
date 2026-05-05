@@ -79,3 +79,15 @@ export interface DocImpactListResponse {
   impacts: DocImpact[];
   total: number;
 }
+
+export interface Patch {
+  id: number;
+  doc_impact_id: number;
+  document_path: string;
+  change_type: string;
+  original_content: string | null;
+  patched_content: string | null;
+  diff: string | null;
+  quality_report: string | null;
+  status: string;
+}
