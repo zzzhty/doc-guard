@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -29,9 +31,16 @@ def get_doc_content(
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    if not _is_safe_repo_path(path):
+        raise HTTPException(status_code=400, detail="Invalid path")
 
     provider = ProjectService.get_git_provider(project)
     content = provider.get_file_content(path, ref)
     if content is None:
         raise HTTPException(status_code=404, detail="File not found")
     return {"path": path, "content": content}
+
+
+def _is_safe_repo_path(path: str) -> bool:
+    candidate = Path(path)
+    return not candidate.is_absolute() and ".." not in candidate.parts

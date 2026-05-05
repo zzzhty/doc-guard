@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CommitScanRequest(BaseModel):
@@ -17,6 +17,7 @@ class CommitResponse(BaseModel):
     commit_hash: str
     author: str
     message: str
+    changed_files: list[str] = Field(default_factory=list)
     committed_at: datetime | None
     scanned_at: datetime | None
     analysis_status: str
@@ -25,7 +26,7 @@ class CommitResponse(BaseModel):
 
 
 class CommitDetailResponse(CommitResponse):
-    diff: str
+    diff: str = ""
 
 
 class CommitListResponse(BaseModel):

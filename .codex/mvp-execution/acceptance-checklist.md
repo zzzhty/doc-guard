@@ -4,9 +4,9 @@
 
 | # | 验收标准 | 目标 Milestone | 当前状态 | 验证方式 |
 | --- | --- | --- | --- | --- |
-| 1 | 可以接入一个真实 Git 项目 | M1 | 未完成 | UI 创建 local 项目，后端保存 Project，显示 docops 状态 |
-| 2 | 可以读取目标项目的代码和文档 | M1 | 未完成 | 打开文档树和文档内容；commit diff 可查看 |
-| 3 | 可以扫描某个代码 commit | M1 | 部分完成 | UI 扫描 commit，返回 commit metadata、changed files、diff |
+| 1 | 可以接入一个真实 Git 项目 | M1 | 已完成 | UI 创建 local 项目，后端保存 Project，显示 docops 状态 |
+| 2 | 可以读取目标项目的代码和文档 | M1 | 已完成 | 打开文档树和文档内容；commit diff 可查看 |
+| 3 | 可以扫描某个代码 commit | M1 | 已完成 | UI 扫描 commit，返回 commit metadata、changed files、diff |
 | 4 | 可以判断受影响文档 | M2 | 部分完成 | 点击 Analyze，生成 DocImpact 列表 |
 | 5 | 可以生成章节级文档补丁 | M3 | 部分完成 | 对 impact 生成 patch，patched content 是完整文档 |
 | 6 | 可以创建 docguard/* 分支 | M4 | 部分完成 | Gitea 中出现 docguard 分支 |
@@ -26,10 +26,10 @@
 
 ### M1 Local Readonly Loop
 
-- [ ] 项目接入保存 `config_yaml` 或明确 missing。
-- [ ] commit 扫描保存 changed files。
-- [ ] 前端能查看文档树、文档内容、commit detail。
-- [ ] 本阶段不写目标 repo 文件。
+- [x] 项目接入保存 `config_yaml` 或明确 missing。
+- [x] commit 扫描保存 changed files。
+- [x] 前端能查看文档树、文档内容、commit detail。
+- [x] 本阶段不写目标 repo 文件。
 
 ### M2 Impact Analysis Loop
 

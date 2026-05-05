@@ -50,6 +50,20 @@ class LocalGitProvider(GitProvider):
             diff = commit.diff(gitpython.NULL_TREE, create_patch=True)
         return "\n".join(str(d) for d in diff)
 
+    def get_commit_changed_files(self, commit_hash: str) -> list[str]:
+        commit = self._repo.commit(commit_hash)
+        if commit.parents:
+            diff = commit.parents[0].diff(commit)
+        else:
+            diff = commit.diff(gitpython.NULL_TREE)
+
+        files = set()
+        for item in diff:
+            path = item.b_path or item.a_path
+            if path:
+                files.add(path)
+        return sorted(files)
+
     def get_file_content(self, path: str, ref: str | None = None) -> str | None:
         try:
             if ref:

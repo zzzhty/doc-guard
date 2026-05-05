@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useChanges, useScanCommit } from "../../hooks/useChanges";
+import { Link } from "react-router-dom";
+import { useChanges, useScanCommit, useScanRecent } from "../../hooks/useChanges";
 
 interface Props {
   projectId: number;
@@ -8,6 +9,7 @@ interface Props {
 export default function ChangeList({ projectId }: Props) {
   const { data, isLoading, error } = useChanges(projectId);
   const scanMutation = useScanCommit(projectId);
+  const scanRecentMutation = useScanRecent(projectId);
   const [commitHash, setCommitHash] = useState("");
   const [showScan, setShowScan] = useState(false);
 
@@ -27,12 +29,21 @@ export default function ChangeList({ projectId }: Props) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900">Scanned Commits</h2>
-        <button
-          onClick={() => setShowScan(!showScan)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-        >
-          Scan Commit
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => scanRecentMutation.mutate(10)}
+            disabled={scanRecentMutation.isPending}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm"
+          >
+            {scanRecentMutation.isPending ? "Scanning..." : "Scan Recent"}
+          </button>
+          <button
+            onClick={() => setShowScan(!showScan)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+          >
+            Scan Commit
+          </button>
+        </div>
       </div>
 
       {showScan && (
@@ -57,6 +68,12 @@ export default function ChangeList({ projectId }: Props) {
       {scanMutation.isError && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {scanMutation.error instanceof Error ? scanMutation.error.message : "Scan failed"}
+        </div>
+      )}
+
+      {scanRecentMutation.isError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {scanRecentMutation.error instanceof Error ? scanRecentMutation.error.message : "Scan recent failed"}
         </div>
       )}
 
@@ -86,6 +103,7 @@ export default function ChangeList({ projectId }: Props) {
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Hash</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Files</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Author</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Message</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Status</th>
@@ -95,7 +113,12 @@ export default function ChangeList({ projectId }: Props) {
               {data.commits.map((commit) => (
                 <tr key={commit.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-sm text-gray-900">
-                    {commit.commit_hash.substring(0, 8)}
+                    <Link to={`/projects/${projectId}/changes/${commit.id}`} className="hover:text-blue-600">
+                      {commit.commit_hash.substring(0, 8)}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {commit.changed_files.length}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{commit.author}</td>
                   <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">

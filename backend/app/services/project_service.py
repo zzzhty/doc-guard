@@ -1,10 +1,12 @@
 import os
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from app.database.models.project import Project
 from app.git_providers.local import LocalGitProvider
+from app.services.config_parser import load_docops_from_repo
 
 
 class ProjectService:
@@ -40,6 +42,7 @@ class ProjectService:
             provider=provider,
             local_path=local_path,
             default_branch=data.get("default_branch", "main"),
+            config_yaml=self._read_docops_yaml(local_path),
             last_synced_at=datetime.utcnow(),
         )
         self.db.add(project)
@@ -79,7 +82,12 @@ class ProjectService:
             return None
         provider = self._get_git_provider(project)
         if isinstance(provider, LocalGitProvider):
-            provider._repo.remote().fetch()
+            try:
+                if provider._repo.remotes:
+                    provider._repo.remote().fetch()
+            except Exception:
+                pass
+        project.config_yaml = self._read_docops_yaml(project.local_path)
         project.last_synced_at = datetime.utcnow()
         self.db.commit()
         self.db.refresh(project)
@@ -92,3 +100,12 @@ class ProjectService:
     @staticmethod
     def _get_git_provider(project: Project) -> LocalGitProvider:
         return LocalGitProvider(project.local_path)
+
+    @staticmethod
+    def _read_docops_yaml(local_path: str | None) -> str | None:
+        if not local_path:
+            return None
+        if not load_docops_from_repo(local_path):
+            return None
+        config_path = Path(local_path) / "docops.yml"
+        return config_path.read_text(encoding="utf-8")

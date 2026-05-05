@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
+import ChangeDetail from "./pages/Changes/ChangeDetail";
 import Dashboard from "./pages/Dashboard";
 import ProjectConnect from "./pages/Projects/ProjectConnect";
 import ProjectDetail from "./pages/Projects/ProjectDetail";
@@ -14,6 +15,7 @@ function App() {
         <Route path="/projects" element={<ProjectList />} />
         <Route path="/projects/connect" element={<ProjectConnect />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
+        <Route path="/projects/:id/changes/:commitId" element={<ChangeDetail />} />
       </Route>
     </Routes>
   );

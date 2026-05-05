@@ -1,12 +1,9 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useChange } from "../../hooks/useChanges";
 
-interface Props {
-  projectId: number;
-}
-
-export default function ChangeDetail({ projectId }: Props) {
-  const { commitId } = useParams<{ commitId: string }>();
+export default function ChangeDetail() {
+  const { id, commitId } = useParams<{ id: string; commitId: string }>();
+  const projectId = Number(id);
   const { data: commit, isLoading, error } = useChange(projectId, Number(commitId));
 
   if (isLoading) {
@@ -28,20 +25,39 @@ export default function ChangeDetail({ projectId }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="p-6 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 font-mono">
-          {commit.commit_hash}
-        </h3>
-        <p className="text-sm text-gray-500 mt-1">{commit.author}</p>
-        <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{commit.message}</p>
-      </div>
+    <div>
+      <Link to={`/projects/${projectId}`} className="text-sm text-gray-500 hover:text-gray-700 mb-4 block">
+        &larr; Project
+      </Link>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <h1 className="text-lg font-semibold text-gray-900 font-mono">
+            {commit.commit_hash}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">{commit.author}</p>
+          <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{commit.message}</p>
+          <div className="mt-4">
+            <h2 className="text-sm font-medium text-gray-500 uppercase mb-2">Changed Files</h2>
+            {commit.changed_files.length > 0 ? (
+              <ul className="space-y-1">
+                {commit.changed_files.map((file) => (
+                  <li key={file} className="font-mono text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded">
+                    {file}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500">No changed files recorded.</p>
+            )}
+          </div>
+        </div>
 
-      <div className="p-6">
-        <h4 className="text-sm font-medium text-gray-500 uppercase mb-3">Diff</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto text-sm font-mono max-h-[600px] whitespace-pre-wrap">
-          {commit.diff || "No diff available"}
-        </pre>
+        <div className="p-6">
+          <h2 className="text-sm font-medium text-gray-500 uppercase mb-3">Diff</h2>
+          <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto text-sm font-mono max-h-[600px] whitespace-pre-wrap">
+            {commit.diff || "No diff available"}
+          </pre>
+        </div>
       </div>
     </div>
   );

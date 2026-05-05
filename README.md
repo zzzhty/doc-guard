@@ -105,14 +105,14 @@ modules:
 - `LocalGitProvider` 支持 commit 列表、diff、文件读取、本地分支和 commit。
 - `GiteaGitProvider` 有 API 操作骨架，包括分支、文件提交和 PR 创建，但尚未接入 provider 工厂。
 - `docops.yml` 解析、模块匹配、文档扫描、commit 扫描、impact、patch、Doc PR 模型与服务已有初版。
-- 前端已有 Dashboard、项目列表、项目接入、项目详情和 commit 扫描列表。
+- 前端已有 Dashboard、项目列表、项目接入、项目详情、docops 状态、文档树/内容浏览、commit 扫描列表和 commit detail。
+- 本地只读闭环已支持扫描指定 commit 和最近 commit，并保存 changed files。
 - 后端已建立最小测试基线，覆盖 `docops.yml` 解析、模块匹配、文档工具和 `/health`。
 
 主要缺口：
 
 - `ProjectService.get_git_provider()` 目前总是返回 `LocalGitProvider`，Gitea/GitLab/GitHub UI 选项尚不可用。
-- 接入项目时还没有读取并持久化 `docops.yml` 到 `Project.config_yaml`。
-- 前端缺少文档树、文档阅读、change detail 路由、影响分析、补丁预览和 PR 管理页。
+- 前端仍缺少影响分析、补丁预览和 PR 管理页。
 - Patch 生成存在关键风险：章节内容可能被当成完整文件提交，必须先修复。
 - Webhook 只有占位日志，PR 状态无法回流到文档债务看板。
 - 后端测试仍偏少，尚未覆盖数据库服务、Git provider 和 LLM fallback 流程。
@@ -141,7 +141,7 @@ modules:
 | Milestone | 目标 | 完成标志 |
 | --- | --- | --- |
 | M0 Engineering Baseline | 修复 lint/test 基线 | 已完成：后端 ruff/test 和前端 build/lint 通过 |
-| M1 Local Readonly Loop | 本地项目只读闭环 | 接入项目、读取 docops、浏览 docs/wiki、查看 commit diff |
+| M1 Local Readonly Loop | 本地项目只读闭环 | 已完成：接入项目、读取 docops、浏览 docs/wiki、查看 commit diff |
 | M2 Impact Analysis Loop | 文档影响分析 | commit detail 可触发分析并展示影响文档、等级、原因 |
 | M3 Patch Preview And Quality Gate | 补丁预览与质量门禁 | 生成完整文档 patch，支持预览、编辑、approve/reject |
 | M4 Gitea PR-First Loop | Gitea PR 创建 | 创建 `docguard/*` 分支、提交文档修改、创建真实 Gitea PR |
@@ -254,7 +254,7 @@ pnpm lint
 - `cd frontend && pnpm build`：通过。
 - `cd frontend && pnpm lint`：通过。
 - `cd backend && uv run ruff check app tests`：通过。
-- `cd backend && uv run --all-groups python -m pytest`：通过。
+- `cd backend && uv run --all-groups python -m pytest`：通过，19 个测试。
 
 ## Documentation Map
 

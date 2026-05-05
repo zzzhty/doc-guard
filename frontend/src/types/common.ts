@@ -31,6 +31,7 @@ export interface Commit {
   commit_hash: string;
   author: string;
   message: string;
+  changed_files: string[];
   committed_at: string | null;
   scanned_at: string | null;
   analysis_status: string;
@@ -43,4 +44,18 @@ export interface CommitDetail extends Commit {
 export interface CommitListResponse {
   commits: Commit[];
   total: number;
+}
+
+export type DocTree = {
+  [path: string]: DocTree | null;
+};
+
+export interface DocTreeResponse {
+  docs: DocTree;
+  wiki: DocTree;
+}
+
+export interface DocContent {
+  path: string;
+  content: string;
 }

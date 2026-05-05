@@ -6,32 +6,32 @@
 
 ## Current State
 
-后端已有 `ProjectService`、`LocalGitProvider`、`DocScanner`、`CommitScanner` 和 `/projects/{id}/changes` 路由。前端已有项目接入、项目详情和 commit 列表，但没有文档树、文档内容页、change detail 路由入口，也没有持久化 changed files。
+已完成。后端会在项目接入/同步时保存 `docops.yml` 快照，扫描 commit 时持久化 changed files，并避免重复扫描同一 commit。前端项目详情页已展示 docops 状态、文档树、文档内容、Scan Recent 和 commit detail。
 
 ## Deliverables
 
-- 本地项目接入时读取并保存 `docops.yml` 快照到 `Project.config_yaml`。
-- 扫描 commit 时持久化 changed files，避免每次重新解析 diff。
-- 前端项目详情页展示文档树、docops 状态和 commit 扫描入口。
-- 前端 commit 列表可以进入 commit detail，查看 metadata、changed files、diff。
+- 本地项目接入时读取并保存 `docops.yml` 快照到 `Project.config_yaml`。已完成。
+- 扫描 commit 时持久化 changed files，避免每次重新解析 diff。已完成。
+- 前端项目详情页展示文档树、docops 状态和 commit 扫描入口。已完成。
+- 前端 commit 列表可以进入 commit detail，查看 metadata、changed files、diff。已完成。
 
 ## Task Breakdown
 
 ### P0
 
-- 在项目创建/同步时调用 `load_docops_from_repo()`；存在时保存原始 YAML 到 `Project.config_yaml`，不存在时标记为 missing。
-- 为 `ScannedCommit` 增加 `changed_files_json: Text | None`；响应 schema 暴露 `changed_files: list[str]`。
-- 在 `CommitScanner.scan_commit()` 和 `scan_recent()` 中解析 diff，保存 changed files。
-- 防止同一 project 重复扫描同一 commit；重复扫描返回已有记录或明确 409/400 错误。
-- 给 `ChangeList` 中每行 commit 添加详情链接。
-- 在 `App.tsx` 增加 `/projects/:id/changes/:commitId` 路由，并让 `ChangeDetail` 能获得 `projectId`。
+- 在项目创建/同步时调用 `load_docops_from_repo()`；存在时保存原始 YAML 到 `Project.config_yaml`，不存在时标记为 missing。已完成。
+- 为 `ScannedCommit` 增加 `changed_files_json: Text | None`；响应 schema 暴露 `changed_files: list[str]`。已完成。
+- 在 `CommitScanner.scan_commit()` 和 `scan_recent()` 中解析 diff，保存 changed files。已完成。
+- 防止同一 project 重复扫描同一 commit；重复扫描返回已有记录。已完成。
+- 给 `ChangeList` 中每行 commit 添加详情链接。已完成。
+- 在 `App.tsx` 增加 `/projects/:id/changes/:commitId` 路由，并让 `ChangeDetail` 能获得 `projectId`。已完成。
 
 ### P1
 
-- 前端新增文档树组件，接入 `GET /projects/{id}/docs/tree`。
-- 前端新增文档内容查看，接入 `GET /projects/{id}/docs/content?path=...`。
-- 项目详情显示 `docops.yml` 是否存在、docs/wiki 目录是否存在、最近同步时间。
-- 增加 “Scan Recent” 按钮，调用已有 `/changes/scan-recent`。
+- 前端新增文档树组件，接入 `GET /projects/{id}/docs/tree`。已完成。
+- 前端新增文档内容查看，接入 `GET /projects/{id}/docs/content?path=...`。已完成。
+- 项目详情显示 `docops.yml` 是否存在和最近同步时间。已完成。
+- 增加 “Scan Recent” 按钮，调用已有 `/changes/scan-recent`。已完成。
 
 ## Interfaces
 
