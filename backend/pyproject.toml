@@ -1,0 +1,35 @@
+[project]
+name = "docguard-backend"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Tianyi", email = "tyz1024@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[standard]>=0.136.1",
+    "gitpython>=3.1.49",
+    "httpx>=0.28.1",
+    "markdown-it-py>=4.0.0",
+    "openai>=2.34.0",
+    "pydantic>=2.13.3",
+    "pydantic-settings>=2.14.0",
+    "python-frontmatter>=1.1.0",
+    "pyyaml>=6.0.3",
+    "sqlalchemy>=2.0.49",
+    "uvicorn[standard]>=0.46.0",
+]
+
+[project.scripts]
+docguard-backend = "docguard_backend:main"
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.15.12",
+]
