@@ -29,13 +29,11 @@ async def gitea_webhook(request: Request):
 
 @router.post("/gitlab")
 async def gitlab_webhook(request: Request):
-    payload = await request.json()
     logger.info("Received GitLab webhook: event=%s", request.headers.get("X-Gitlab-Event", "unknown"))
     return {"status": "received"}
 
 
 @router.post("/github")
 async def github_webhook(request: Request):
-    payload = await request.json()
     logger.info("Received GitHub webhook: event=%s", request.headers.get("X-GitHub-Event", "unknown"))
     return {"status": "received"}
