@@ -1,9 +1,11 @@
 import json
+from datetime import datetime
 
 import pytest
 
 from app.config import settings
 from app.database.models.doc_impact import DocImpact
+from app.database.models.doc_pr import DocPR, DocPRItem
 from app.database.models.patch import Patch
 from app.database.models.project import Project
 from app.database.models.scanned_commit import ScannedCommit
@@ -34,6 +36,21 @@ class FakeProvider:
             base_branch=base_branch,
             status="open",
         )
+
+
+class FakeStatusProvider:
+    def __init__(self, pr_info: PRInfo):
+        self.pr_info = pr_info
+        self.closed = False
+
+    def get_pr(self, pr_number: int) -> PRInfo:
+        assert pr_number == self.pr_info.number
+        return self.pr_info
+
+    def close_pr(self, pr_number: int) -> bool:
+        assert pr_number == self.pr_info.number
+        self.closed = True
+        return True
 
 
 def create_approved_patch(db_session):
@@ -92,6 +109,40 @@ def create_approved_patch(db_session):
     return project, commit, impact, patch
 
 
+def create_doc_pr_record(db_session):
+    project, commit, impact, patch = create_approved_patch(db_session)
+    doc_pr = DocPR(
+        project_id=project.id,
+        provider="gitea",
+        pr_number=7,
+        pr_url="https://git.example.test/acme/demo/pulls/7",
+        branch_name="docguard/update-auth-a1b2c3d",
+        base_branch="main",
+        source_commit=commit.commit_hash,
+        title="[DocGuard] Update auth documentation",
+        body="body",
+        status="open",
+    )
+    db_session.add(doc_pr)
+    db_session.commit()
+    db_session.refresh(doc_pr)
+
+    item = DocPRItem(
+        doc_pr_id=doc_pr.id,
+        document_path=patch.document_path,
+        patch_id=patch.id,
+        change_type=patch.change_type,
+        review_required=True,
+        status="included",
+    )
+    db_session.add(item)
+    impact.doc_pr_id = doc_pr.id
+    impact.status = "pr_created"
+    db_session.commit()
+    db_session.refresh(item)
+    return project, impact, item, doc_pr
+
+
 @pytest.mark.asyncio
 async def test_create_pr_calls_provider_and_persists_relationships(db_session, monkeypatch):
     monkeypatch.setattr(settings, "llm_api_key", "")
@@ -131,3 +182,68 @@ async def test_create_pr_requires_approved_patches(db_session):
 
     with pytest.raises(ValueError, match="approved"):
         await DocPRService(db_session).create_pr(project.id, [patch.id])
+
+
+@pytest.mark.parametrize(
+    ("remote_status", "merged_at", "expected_pr_status", "expected_impact_status", "expected_item_status"),
+    [
+        ("open", None, "open", "pr_created", "included"),
+        ("closed", None, "closed", "pr_rejected", "rejected"),
+        ("closed", datetime(2026, 5, 5, 8, 0, 0), "merged", "pr_merged", "merged"),
+    ],
+)
+def test_refresh_status_maps_remote_pr_status(
+    db_session,
+    monkeypatch,
+    remote_status,
+    merged_at,
+    expected_pr_status,
+    expected_impact_status,
+    expected_item_status,
+):
+    _, impact, item, doc_pr = create_doc_pr_record(db_session)
+    provider = FakeStatusProvider(
+        PRInfo(
+            number=7,
+            title="Remote title",
+            url="https://git.example.test/acme/demo/pulls/7",
+            branch=doc_pr.branch_name,
+            base_branch="main",
+            status=remote_status,
+            merged_at=merged_at,
+        )
+    )
+    monkeypatch.setattr(ProjectService, "get_git_provider", staticmethod(lambda _: provider))
+
+    refreshed = DocPRService(db_session).refresh_status(doc_pr.id)
+
+    assert refreshed.status == expected_pr_status
+    assert refreshed.title == "Remote title"
+    db_session.refresh(impact)
+    db_session.refresh(item)
+    assert impact.status == expected_impact_status
+    assert item.status == expected_item_status
+
+
+def test_close_pr_calls_provider_and_marks_impacts_rejected(db_session, monkeypatch):
+    _, impact, item, doc_pr = create_doc_pr_record(db_session)
+    provider = FakeStatusProvider(
+        PRInfo(
+            number=7,
+            title="Remote title",
+            url="https://git.example.test/acme/demo/pulls/7",
+            branch=doc_pr.branch_name,
+            base_branch="main",
+            status="open",
+        )
+    )
+    monkeypatch.setattr(ProjectService, "get_git_provider", staticmethod(lambda _: provider))
+
+    closed = DocPRService(db_session).close_pr(doc_pr.id)
+
+    assert provider.closed is True
+    assert closed.status == "closed"
+    db_session.refresh(impact)
+    db_session.refresh(item)
+    assert impact.status == "pr_rejected"
+    assert item.status == "rejected"

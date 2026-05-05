@@ -96,9 +96,9 @@ modules:
 
 ## Current Implementation Status
 
-截至 2026-05-05，项目已经跑通从本地只读扫描到 Gitea PR 创建的主链路，剩余 MVP 缺口集中在 PR 状态回流和 Dashboard 收口。
+截至 2026-05-05，项目已经跑通 MVP 主闭环：接入项目、读取文档、扫描 commit、分析影响、生成并审核 patch、创建 Gitea PR，以及在 PR 合并/关闭后回写状态和看板统计。
 
-已实现或部分实现：
+已实现：
 
 - 后端 FastAPI 主体、`/api/v1` 路由聚合和 `/health`。
 - 项目接入 CRUD，支持 local path 校验和非 local 仓库 clone 的初步逻辑。
@@ -108,25 +108,26 @@ modules:
 - `docops.yml` 解析、模块匹配、文档扫描、commit 扫描、impact、patch、Doc PR 模型与服务已有初版。
 - 文档影响分析已支持 docops 候选、无 docops 路径相似度降级、重复分析复用结果、无 LLM key 的保守 heuristic 结果。
 - 补丁生成已保证输出完整文档，支持章节替换、未命中章节时追加 review section、编辑、approve/reject、质量报告预览和 approved patch 创建 PR。
-- `DocPRService` 已能校验 approved patches、限制文档写入路径、创建 `docguard/*` 分支、提交文档修改、创建 Gitea PR，并保存 PR number、URL、body 和 items。
-- 前端已有 Dashboard、项目列表、项目接入、项目详情、docops 状态、文档树/内容浏览、commit 扫描列表和 commit detail。
+- `DocPRService` 已能校验 approved patches、限制文档写入路径、创建 `docguard/*` 分支、提交文档修改、创建 Gitea PR、刷新/关闭 PR，并保存 PR number、URL、body 和 items。
+- Dashboard API 已统计 commits、impact 状态、高风险文档、open/merged/rejected PR，并提供最近 impact 活动。
+- Gitea webhook 可处理 `docguard/*` pull_request 事件，把 merged/closed/open 状态同步到 `DocPR`、`DocPRItem` 和 `DocImpact`。
+- 前端已有真实 Dashboard、项目列表、项目接入、项目详情、docops 状态、文档树/内容浏览、commit 扫描列表、commit detail、patch preview 和 Doc PR 管理页。
 - 本地只读闭环已支持扫描指定 commit 和最近 commit，并保存 changed files。
-- 后端已建立最小测试基线，覆盖 `docops.yml` 解析、模块匹配、文档工具和 `/health`。
+- 后端测试覆盖 `docops.yml` 解析、模块匹配、文档工具、扫描、impact、patch、Doc PR、Gitea provider、Dashboard 和 webhook。
 
-主要缺口：
+Post-MVP 加固项：
 
-- 前端仍缺少完整的 Doc PR 管理页。
-- Dashboard 仍是占位数据，尚未接入真实统计 API。
-- `refresh_status()` 当前仍是 no-op，webhook 尚未驱动 PR 合并/关闭状态回流。
+- Gitea webhook 需要增加签名校验、事件来源校验和仓库匹配校验。
+- local provider 写操作仍会切换目标仓库工作区，产品化前应改为 worktree 或临时 clone。
 - GitLab/GitHub provider 仍只保留接口方向，不进入当前 MVP。
 
-## Key Risks To Fix First
+## Key Post-MVP Risks
 
 1. **Local Git 写操作副作用**
    当前 local commit 流程会切换目标仓库分支并 reset working tree。产品化前应改为 worktree 或临时 clone。
 
-2. **状态同步不可用**
-   `refresh_status()` 当前是 no-op，webhook 未驱动状态更新。
+2. **Webhook 可信度**
+   当前 webhook 只按 `docguard/*` 分支和本地 PR 记录匹配事件；后续必须补签名和仓库校验。
 
 3. **真实环境集成**
    自动测试使用 fake provider，不依赖真实 Gitea；上线前仍需要用真实 Gitea 仓库做手动验收。
@@ -142,7 +143,7 @@ modules:
 | M2 Impact Analysis Loop | 文档影响分析 | 已完成：commit detail 可触发分析并展示影响文档、等级、原因 |
 | M3 Patch Preview And Quality Gate | 补丁预览与质量门禁 | 已完成：生成完整文档 patch，支持预览、编辑、approve/reject |
 | M4 Gitea PR-First Loop | Gitea PR 创建 | 已完成：创建 `docguard/*` 分支、提交文档修改、创建真实 Gitea PR |
-| M5 Dashboard And Close Loop | 看板和状态闭环 | PR 合并/关闭后更新 impact 状态和 Dashboard |
+| M5 Dashboard And Close Loop | 看板和状态闭环 | 已完成：PR 合并/关闭后更新 impact 状态和 Dashboard |
 
 ## MVP Acceptance Criteria
 
@@ -158,6 +159,8 @@ MVP 完成时必须可以演示：
 8. 创建 PR/MR。
 9. PR 描述说明来源 commit、影响文档和需要确认的事项。
 10. PR 合并后，平台状态自动更新。
+
+以上 10 项已在当前实现中具备可演示路径；真实 Gitea 仓库仍建议做一次手动集成验收。
 
 ## Generated PR Contract
 
@@ -216,13 +219,13 @@ PR 描述必须包含：
 
 MVP 页面目标：
 
-- `/dashboard`：文档债务和 DocGuard PR 状态。
+- `/dashboard`：真实文档债务和 DocGuard PR 状态。
 - `/projects`：项目列表。
 - `/projects/connect`：连接 local/Gitea 项目。
 - `/projects/:id`：项目详情、docops 状态、文档树和 commit 列表。
 - `/projects/:id/changes/:commitId`：commit diff、changed files、impact analysis。
 - Patch preview：原文、建议结果、diff、质量报告、approve/reject/edit，并可从 approved patch 创建 PR。
-- Doc PR 管理：PR 标题、source commit、影响文档、状态、PR URL。
+- `/projects/:id/doc-prs`：Doc PR 标题、source commit、分支、状态刷新、关闭和 PR URL。
 
 ## Development Commands
 
@@ -251,7 +254,7 @@ pnpm lint
 - `cd frontend && pnpm build`：通过。
 - `cd frontend && pnpm lint`：通过。
 - `cd backend && uv run ruff check app tests`：通过。
-- `cd backend && uv run --all-groups python -m pytest`：通过，32 个测试。
+- `cd backend && uv run --all-groups python -m pytest`：通过，38 个测试。
 
 ## Documentation Map
 

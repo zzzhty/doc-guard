@@ -31,7 +31,7 @@
 - 增加 impact 状态更新按钮：`ignored`、`false_positive`。已完成。
 - 按影响等级排序：high、medium、low，再按创建时间。已完成。
 - 在 UI 中显示 “No affected docs found” 的空态，不把空结果当错误。已完成。
-- 将 `ChangeInterpreter` 的 summary 保存到 commit 或单独字段，供详情页展示。后续优化项。
+- Post-MVP 可将 `ChangeInterpreter` 的 summary 保存到 commit 或单独字段，供详情页展示。
 
 ## Interfaces
 

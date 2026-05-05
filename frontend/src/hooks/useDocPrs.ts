@@ -24,6 +24,7 @@ export function useCreateDocPR(projectId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "doc-prs"] });
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "impacts"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", projectId] });
     },
   });
 }

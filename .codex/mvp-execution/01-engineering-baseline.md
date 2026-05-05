@@ -9,8 +9,8 @@
 - `frontend && pnpm build` 通过。
 - `frontend && pnpm lint` 通过。
 - `backend && uv run ruff check app tests` 已通过。
-- 标准测试命令使用 `uv run --all-groups python -m pytest`，当前已有 15 个测试通过。
-- `backend/tests` 已包含 15 个最小测试，后续仍需补服务层、provider 和 LLM fallback 覆盖。
+- 标准测试命令使用 `uv run --all-groups python -m pytest`，当前已有 38 个测试通过。
+- `backend/tests` 已覆盖纯工具、服务层、provider、LLM fallback、Dashboard 和 webhook。
 
 ## Deliverables
 
@@ -31,7 +31,7 @@
 
 ### P1
 
-- 新增 `ProjectService` local path 校验测试，使用临时 Git repo。
+- 新增 `ProjectService` local path 校验测试，使用临时 Git repo。已完成。
 - 新增 FastAPI health smoke test，确认 app 可导入、`/health` 返回 ok。已完成。
 - 在 README 或 `.codex` 文档中记录后端首次启动的依赖同步顺序。
 

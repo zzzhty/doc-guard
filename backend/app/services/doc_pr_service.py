@@ -1,6 +1,7 @@
 import logging
 import json
 import re
+from datetime import datetime
 from pathlib import PurePosixPath
 from types import SimpleNamespace
 
@@ -293,24 +294,80 @@ class DocPRService:
         doc_pr = self.get_pr(doc_pr_id)
         if not doc_pr:
             return None
-        # For MVP, status is manually updated or via webhook
-        # In production, this would call Gitea API
-        doc_pr.status = doc_pr.status
-        self.db.commit()
-        return doc_pr
+
+        project = self.db.query(Project).filter(Project.id == doc_pr.project_id).first()
+        if not project or project.provider == "local" or doc_pr.pr_number is None:
+            self._sync_linked_records(doc_pr)
+            self.db.commit()
+            self.db.refresh(doc_pr)
+            return doc_pr
+
+        provider = ProjectService.get_git_provider(project)
+        pr_info = provider.get_pr(doc_pr.pr_number)
+        return self.apply_remote_status(
+            doc_pr=doc_pr,
+            status=self._normalize_remote_status(pr_info),
+            merged_at=pr_info.merged_at,
+            pr_url=pr_info.url,
+            title=pr_info.title,
+        )
 
     def close_pr(self, doc_pr_id: int) -> DocPR | None:
         doc_pr = self.get_pr(doc_pr_id)
         if not doc_pr:
             return None
-        doc_pr.status = "closed"
+
+        project = self.db.query(Project).filter(Project.id == doc_pr.project_id).first()
+        if project and project.provider == "gitea" and doc_pr.pr_number is not None:
+            provider = ProjectService.get_git_provider(project)
+            if not provider.close_pr(doc_pr.pr_number):
+                raise RuntimeError(f"Failed to close PR {doc_pr.pr_number}")
+
+        return self.apply_remote_status(doc_pr=doc_pr, status="closed")
+
+    def apply_remote_status(
+        self,
+        doc_pr: DocPR,
+        status: str,
+        merged_at: datetime | None = None,
+        pr_url: str | None = None,
+        title: str | None = None,
+    ) -> DocPR:
+        doc_pr.status = status
+        if pr_url:
+            doc_pr.pr_url = pr_url
+        if title:
+            doc_pr.title = title
+        if status == "merged":
+            doc_pr.merged_at = merged_at or doc_pr.merged_at or datetime.utcnow()
+
+        self._sync_linked_records(doc_pr)
         self.db.commit()
         self.db.refresh(doc_pr)
-
-        # Update linked impacts
-        impacts = self.db.query(DocImpact).filter(DocImpact.doc_pr_id == doc_pr_id).all()
-        for i in impacts:
-            i.status = "pr_rejected"
-        self.db.commit()
-
         return doc_pr
+
+    def _normalize_remote_status(self, pr_info: PRInfo) -> str:
+        if pr_info.merged_at or pr_info.status == "merged":
+            return "merged"
+        if pr_info.status in {"closed", "rejected"}:
+            return "closed"
+        return "open"
+
+    def _sync_linked_records(self, doc_pr: DocPR) -> None:
+        impacts = self.db.query(DocImpact).filter(DocImpact.doc_pr_id == doc_pr.id).all()
+        items = self.db.query(DocPRItem).filter(DocPRItem.doc_pr_id == doc_pr.id).all()
+
+        if doc_pr.status == "merged":
+            impact_status = "pr_merged"
+            item_status = "merged"
+        elif doc_pr.status in {"closed", "rejected"}:
+            impact_status = "pr_rejected"
+            item_status = "rejected"
+        else:
+            impact_status = "pr_created"
+            item_status = "included"
+
+        for impact in impacts:
+            impact.status = impact_status
+        for item in items:
+            item.status = item_status

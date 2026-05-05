@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -11,11 +12,7 @@ router = APIRouter()
 
 @router.get("/{project_id}")
 def get_dashboard(project_id: int, db: Session = Depends(get_db)):
-    commit_ids = (
-        db.query(ScannedCommit.id)
-        .filter(ScannedCommit.project_id == project_id)
-        .subquery()
-    )
+    commit_ids = select(ScannedCommit.id).filter(ScannedCommit.project_id == project_id)
 
     impacts = db.query(DocImpact).filter(DocImpact.commit_id.in_(commit_ids))
 
@@ -33,8 +30,11 @@ def get_dashboard(project_id: int, db: Session = Depends(get_db)):
     ).count()
 
     prs = db.query(DocPR).filter(DocPR.project_id == project_id)
+    total_doc_prs = prs.count()
     prs_open = prs.filter(DocPR.status == "open").count()
     prs_merged = prs.filter(DocPR.status == "merged").count()
+    prs_rejected = prs.filter(DocPR.status.in_(["closed", "rejected"])).count()
+    commits_scanned = db.query(ScannedCommit).filter(ScannedCommit.project_id == project_id).count()
 
     recent = (
         impacts.order_by(DocImpact.created_at.desc())
@@ -52,8 +52,11 @@ def get_dashboard(project_id: int, db: Session = Depends(get_db)):
             "ignored": ignored,
             "false_positive": false_positive,
             "high_risk": high_risk,
+            "commits_scanned": commits_scanned,
+            "total_doc_prs": total_doc_prs,
             "prs_open": prs_open,
             "prs_merged": prs_merged,
+            "prs_rejected": prs_rejected,
         },
         "recent_activity": [
             {

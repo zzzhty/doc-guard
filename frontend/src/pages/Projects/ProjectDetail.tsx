@@ -43,13 +43,21 @@ export default function ProjectDetail() {
           <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
           <p className="text-gray-500 mt-1">{project.repo_url}</p>
         </div>
-        <button
-          onClick={() => syncMutation.mutate(projectId)}
-          disabled={syncMutation.isPending}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-        >
-          {syncMutation.isPending ? "Syncing..." : "Sync"}
-        </button>
+        <div className="flex gap-2">
+          <Link
+            to={`/projects/${projectId}/doc-prs`}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Doc PRs
+          </Link>
+          <button
+            onClick={() => syncMutation.mutate(projectId)}
+            disabled={syncMutation.isPending}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+          >
+            {syncMutation.isPending ? "Syncing..." : "Sync"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-8">

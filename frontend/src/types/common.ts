@@ -111,3 +111,32 @@ export interface DocPRListResponse {
   prs: DocPR[];
   total: number;
 }
+
+export interface DashboardStats {
+  pending_analysis: number;
+  patch_generated: number;
+  pr_created: number;
+  pr_merged: number;
+  pr_rejected: number;
+  ignored: number;
+  false_positive: number;
+  high_risk: number;
+  commits_scanned: number;
+  total_doc_prs: number;
+  prs_open: number;
+  prs_merged: number;
+  prs_rejected: number;
+}
+
+export interface DashboardActivity {
+  id: number;
+  document_path: string;
+  impact_level: string;
+  status: string;
+  created_at: string;
+}
+
+export interface DashboardResponse {
+  stats: DashboardStats;
+  recent_activity: DashboardActivity[];
+}

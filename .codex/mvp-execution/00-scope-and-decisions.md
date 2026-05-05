@@ -8,7 +8,7 @@
 
 ## Current State
 
-当前代码已经具备 FastAPI 后端、React 前端、SQLite/SQLAlchemy 模型、LLM agent 分层、local Git provider、Gitea provider 雏形、impact/patch/doc-pr 服务雏形。缺口集中在 provider 工厂、补丁安全写入、前端操作链路、真实 PR 创建和状态回流。
+已完成 MVP 主闭环。当前代码具备 FastAPI 后端、React 前端、SQLite/SQLAlchemy 模型、LLM agent 分层、local/Gitea provider、impact/patch/doc-pr 服务、Gitea PR 创建、PR 状态回流和 Dashboard 统计。
 
 ## In Scope
 

@@ -23,7 +23,7 @@
 - 修改 `PatchService.generate_patch()`：对 `update_section` 使用 `apply_patch_to_section(original_content, target_section_heading, new_content)` 生成完整 `patched_content`。已完成。
 - 如果 `target_section_heading` 未命中，默认改为 `append_section`，不允许覆盖整篇。已完成。
 - 为 `append_section` 定义最小规则：追加到文档末尾，标题由 LLM 返回或使用 `## DocGuard Review Required`。已完成。
-- 为 `create_wiki_note` 定义最小规则：生成新 wiki 文件路径，但本阶段先只允许预览，不直接写入。后续优化项。
+- Post-MVP 可完善 `create_wiki_note` 的新 wiki 文件路径和写入策略；当前 MVP 以正式文档 patch/PR 为主线。
 - 前端新增 patch API/hook/types，支持 generate、get、update、approve、reject。已完成。
 - 新增 patch preview 页面，入口来自 impact list。已完成。
 

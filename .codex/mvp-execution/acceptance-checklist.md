@@ -13,7 +13,7 @@
 | 7 | 可以提交 docs/wiki 修改 | M4 | 已完成 | DocPRService 只允许 docs/wiki/meta/docops.yml，并提交 approved patch 内容 |
 | 8 | 可以创建 PR/MR | M4 | 已完成 | Gitea provider create_pr；DB 保存 pr_number/pr_url |
 | 9 | PR 描述能说明来源 commit、影响文档和需确认事项 | M4 | 已完成 | PR body 包含 source change、affected docs、review notes、quality checks |
-| 10 | PR 合并后，平台状态能更新 | M5 | 未完成 | 合并或刷新 PR 后 impact 变为 pr_merged，Dashboard 计数更新 |
+| 10 | PR 合并后，平台状态能更新 | M5 | 已完成 | 合并或刷新 PR 后 impact 变为 pr_merged，Dashboard 计数更新 |
 
 ## Milestone Completion Gates
 
@@ -55,8 +55,8 @@
 
 ### M5 Dashboard And Close Loop
 
-- [ ] Dashboard 使用真实 API 数据。
-- [ ] Doc PR 管理页可刷新状态。
-- [ ] merged PR 更新 impacts 为 `pr_merged`。
-- [ ] closed PR 更新 impacts 为 `pr_rejected`。
-- [ ] `README.md` 中的 MVP 验收目标全部可演示。
+- [x] Dashboard 使用真实 API 数据。
+- [x] Doc PR 管理页可刷新状态。
+- [x] merged PR 更新 impacts 为 `pr_merged`。
+- [x] closed PR 更新 impacts 为 `pr_rejected`。
+- [x] `README.md` 中的 MVP 验收目标全部可演示。

@@ -27,12 +27,12 @@
 - [x] 将 LLM 生成的 PR body 保存到 `DocPR`；如果模型失败，用 deterministic template fallback。
 - [x] 创建 PR 前验证所有 patch 都属于同一 project，且状态为 `approved`。
 
-### P1
+### Post-MVP Hardening
 
 - local provider 创建 doc branch 时不切换用户工作区；改用 temporary clone 或 git worktree。
 - PR branch 命名冲突时追加短序号：`docguard/update-auth-a1b2c3d-2`。
-- PR 描述包含 changed files；如果 `ScannedCommit.changed_files_json` 已存在，直接使用。
-- 为 Gitea close/refresh 增加真实 API 调用。
+- PR 描述已包含 changed files；后续可继续增强摘要质量。
+- Gitea close/refresh 已接入真实 provider；后续可增加冲突、权限和网络错误分类。
 
 ## Interfaces
 
