@@ -33,4 +33,4 @@ The current history uses short, imperative summaries such as `Init DocGuard: ...
 
 ## Security & Configuration Tips
 
-Backend settings load from `.env`; keep secrets such as `LLM_API_KEY`, provider tokens, and custom base URLs out of git. Do not commit generated folders or local runtime state such as `.venv`, `node_modules`, `dist`, `__pycache__`, or local SQLite databases.
+Backend settings load from `.env`; keep secrets such as `LLM_API_KEY`, provider tokens, and custom base URLs out of git. Do not commit generated folders or local run state such as `.venv`, `node_modules`, `dist`, `__pycache__`, or local SQLite databases.

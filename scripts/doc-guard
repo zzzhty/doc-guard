@@ -27,16 +27,16 @@ RUN_DIR="${HOME}/.local/doc-guard/run"
 
 usage() {
     cat <<'EOF'
-Usage: runtime/doc-guard <command>
+Usage: scripts/doc-guard <command>
 
 Commands:
-  init [--force]          Create ~/.local/doc-guard/config.env and runtime dirs
+  init [--force]          Create ~/.local/doc-guard/config.env and local run/log dirs
   start                   Start backend and frontend in the background
   up                      Run backend and frontend in the foreground
-  stop                    Stop background runtime processes
+  stop                    Stop background processes
   restart                 Restart backend and frontend
   status                  Show process and HTTP health status
-  logs [backend|frontend] Tail runtime logs
+  logs [backend|frontend] Tail backend/frontend logs
   install-user-bin        Symlink this script to ~/.local/bin/doc-guard
   uninstall-user-bin      Remove ~/.local/bin/doc-guard symlink
   install-user-service    Install and start systemd --user service
@@ -61,7 +61,7 @@ write_default_config() {
     fi
 
     cat >"$CONFIG_FILE" <<EOF
-# DocGuard local runtime config.
+# DocGuard local run config.
 # This file is safe for shell source and systemd EnvironmentFile.
 
 DOCGUARD_ROOT=$(quote_value "$DEFAULT_ROOT")
@@ -393,7 +393,7 @@ install_user_service() {
 
     cat >"$unit_file" <<EOF
 [Unit]
-Description=DocGuard runtime
+Description=DocGuard local service
 After=network.target
 
 [Service]
@@ -437,7 +437,7 @@ install_user_bin() {
             return 0
         else
             echo "Refusing to overwrite existing path: $link_path" >&2
-            echo "Use: ./runtime/doc-guard install-user-bin --force" >&2
+            echo "Use: ./scripts/doc-guard install-user-bin --force" >&2
             return 1
         fi
     fi
