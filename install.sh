@@ -2,4 +2,4 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-exec "${ROOT_DIR}/runtime/docguard" install-user-bin "$@"
+exec "${ROOT_DIR}/runtime/doc-guard" install-user-bin "$@"

@@ -1,8 +1,10 @@
 # DocGuard
 
-DocGuard 是一个 **PR/MR-first 的 AI 文档治理平台**。它不直接修改目标项目主分支，而是在代码变更后只读分析代码和文档，生成可审查的文档补丁，并通过 `docguard/*` 分支和 PR/MR 提交给团队 review。
+DocGuard 是一个 **PR/MR-first 的 AI 文档治理平台**。它不直接修改目标项目主分支，而是在代码变更后只读分析代码和文档，生成可审查的文档补丁，并通过 `doc-guard/*` 分支和 PR/MR 提交给团队 review。
 
 本文是项目方案、当前进度和执行方向的统一入口。更细的 milestone 执行任务放在 `.codex/mvp-execution/`，旧的初版方案和进度 review 不再单独维护。
+
+命名约定：`DocGuard` 是产品展示名，用于 README 正文、UI、PR 标题和生成标记；`doc-guard` 是机器可读 slug，用于仓库名、CLI 命令、runtime 路径、systemd service 和自动创建的 Git 分支前缀。
 
 ## Core Principles
 
@@ -24,7 +26,7 @@ MVP 要优先跑通这条闭环：
   -> LLM 判断文档影响范围
   -> LLM 生成章节级文档补丁
   -> 系统执行质量检查
-  -> 创建 docguard/* 分支
+  -> 创建 doc-guard/* 分支
   -> 提交 docs/wiki 修改
   -> 创建 PR/MR
   -> 团队 review 后合并
@@ -73,7 +75,7 @@ docs:
 git:
   provider: gitea
   default_branch: main
-  branch_prefix: docguard/
+  branch_prefix: doc-guard/
   pr_title_prefix: "[DocGuard]"
 
 write_policy:
@@ -108,9 +110,9 @@ modules:
 - `docops.yml` 解析、模块匹配、文档扫描、commit 扫描、impact、patch、Doc PR 模型与服务已有初版。
 - 文档影响分析已支持 docops 候选、无 docops 路径相似度降级、重复分析复用结果、无 LLM key 的保守 heuristic 结果。
 - 补丁生成已保证输出完整文档，支持章节替换、未命中章节时追加 review section、编辑、approve/reject、质量报告预览和 approved patch 创建 PR。
-- `DocPRService` 已能校验 approved patches、限制文档写入路径、创建 `docguard/*` 分支、提交文档修改、创建 Gitea PR、刷新/关闭 PR，并保存 PR number、URL、body 和 items。
+- `DocPRService` 已能校验 approved patches、限制文档写入路径、创建 `doc-guard/*` 分支、提交文档修改、创建 Gitea PR、刷新/关闭 PR，并保存 PR number、URL、body 和 items。
 - Dashboard API 已统计 commits、impact 状态、高风险文档、open/merged/rejected PR，并提供最近 impact 活动。
-- Gitea webhook 可处理 `docguard/*` pull_request 事件，把 merged/closed/open 状态同步到 `DocPR`、`DocPRItem` 和 `DocImpact`。
+- Gitea webhook 可处理 `doc-guard/*` pull_request 事件，把 merged/closed/open 状态同步到 `DocPR`、`DocPRItem` 和 `DocImpact`。
 - 前端已有真实 Dashboard、项目列表、项目接入、项目详情、docops 状态、文档树/内容浏览、commit 扫描列表、commit detail、patch preview 和 Doc PR 管理页。
 - 本地只读闭环已支持扫描指定 commit 和最近 commit，并保存 changed files。
 - 后端测试覆盖 `docops.yml` 解析、模块匹配、文档工具、扫描、impact、patch、Doc PR、Gitea provider、Dashboard 和 webhook。
@@ -127,7 +129,7 @@ Post-MVP 加固项：
    当前 local commit 流程会切换目标仓库分支并 reset working tree。产品化前应改为 worktree 或临时 clone。
 
 2. **Webhook 可信度**
-   当前 webhook 只按 `docguard/*` 分支和本地 PR 记录匹配事件；后续必须补签名和仓库校验。
+   当前 webhook 只按 `doc-guard/*` 分支和本地 PR 记录匹配事件；后续必须补签名和仓库校验。
 
 3. **真实环境集成**
    自动测试使用 fake provider，不依赖真实 Gitea；上线前仍需要用真实 Gitea 仓库做手动验收。
@@ -142,7 +144,7 @@ Post-MVP 加固项：
 | M1 Local Readonly Loop | 本地项目只读闭环 | 已完成：接入项目、读取 docops、浏览 docs/wiki、查看 commit diff |
 | M2 Impact Analysis Loop | 文档影响分析 | 已完成：commit detail 可触发分析并展示影响文档、等级、原因 |
 | M3 Patch Preview And Quality Gate | 补丁预览与质量门禁 | 已完成：生成完整文档 patch，支持预览、编辑、approve/reject |
-| M4 Gitea PR-First Loop | Gitea PR 创建 | 已完成：创建 `docguard/*` 分支、提交文档修改、创建真实 Gitea PR |
+| M4 Gitea PR-First Loop | Gitea PR 创建 | 已完成：创建 `doc-guard/*` 分支、提交文档修改、创建真实 Gitea PR |
 | M5 Dashboard And Close Loop | 看板和状态闭环 | 已完成：PR 合并/关闭后更新 impact 状态和 Dashboard |
 
 ## MVP Acceptance Criteria
@@ -154,7 +156,7 @@ MVP 完成时必须可以演示：
 3. 扫描某个代码 commit。
 4. 判断受影响文档。
 5. 生成章节级文档补丁。
-6. 创建 `docguard/*` 分支。
+6. 创建 `doc-guard/*` 分支。
 7. 提交 `docs/` 或 `wiki/` 修改。
 8. 创建 PR/MR。
 9. PR 描述说明来源 commit、影响文档和需要确认的事项。
@@ -167,14 +169,14 @@ MVP 完成时必须可以演示：
 DocGuard 创建的分支命名：
 
 ```text
-docguard/{action}-{module}-{short_commit}
+doc-guard/{action}-{module}-{short_commit}
 ```
 
 示例：
 
 ```text
-docguard/update-auth-a1b2c3d
-docguard/add-env-docs-b2c3d4e
+doc-guard/update-auth-a1b2c3d
+doc-guard/add-env-docs-b2c3d4e
 ```
 
 Commit message 示例：
@@ -232,46 +234,46 @@ MVP 页面目标：
 推荐使用 runtime 脚本一键启动本地前后端：
 
 ```bash
-./runtime/docguard init
-./runtime/docguard start
-./runtime/docguard status
-./runtime/docguard logs
-./runtime/docguard stop
+./runtime/doc-guard init
+./runtime/doc-guard start
+./runtime/doc-guard status
+./runtime/doc-guard logs
+./runtime/doc-guard stop
 ```
 
-runtime 配置保存到 `$HOME/.local/docguard/config.env`，日志保存到 `$HOME/.local/docguard/logs`，pid 文件保存到 `$HOME/.local/docguard/run`。默认后端运行在 `127.0.0.1:8000`，前端运行在 `127.0.0.1:5173`，前端 `/api` 会代理到配置中的后端地址。
+runtime 配置保存到 `$HOME/.local/doc-guard/config.env`，日志保存到 `$HOME/.local/doc-guard/logs`，pid 文件保存到 `$HOME/.local/doc-guard/run`。默认后端运行在 `127.0.0.1:8000`，前端运行在 `127.0.0.1:5173`，前端 `/api` 会代理到配置中的后端地址。
 
-如果希望直接执行 `docguard` 命令，可安装用户级软链接：
+如果希望直接执行 `doc-guard` 命令，可安装用户级软链接：
 
 ```bash
 ./install.sh
-docguard start
-docguard status
+doc-guard start
+doc-guard status
 ```
 
-默认链接位置是 `$HOME/.local/bin/docguard`。如果 `$HOME/.local/bin` 不在 `PATH`，脚本会打印需要加入 shell 配置的 `export PATH=...`。
+默认链接位置是 `$HOME/.local/bin/doc-guard`。如果 `$HOME/.local/bin` 不在 `PATH`，脚本会打印需要加入 shell 配置的 `export PATH=...`。
 
 可用命令：
 
-- `./runtime/docguard init [--force]`：创建或重置本地 runtime 配置。
-- `./runtime/docguard start`：后台启动 backend 和 frontend。
-- `./runtime/docguard up`：前台启动 backend 和 frontend，适合 systemd 调用。
-- `./runtime/docguard stop`：停止后台进程。
-- `./runtime/docguard restart`：重启后台进程。
-- `./runtime/docguard status`：查看进程、HTTP 健康状态、配置和日志路径。
-- `./runtime/docguard logs [backend|frontend]`：查看日志。
-- `./runtime/docguard install-user-bin [--force]`：安装 `docguard` 命令到 `$HOME/.local/bin`。
-- `./runtime/docguard uninstall-user-bin`：删除用户级 `docguard` 命令软链接。
-- `./runtime/docguard install-user-service`：安装并启动 `systemd --user` 服务。
-- `./runtime/docguard uninstall-user-service`：卸载 `systemd --user` 服务。
+- `./runtime/doc-guard init [--force]`：创建或重置本地 runtime 配置。
+- `./runtime/doc-guard start`：后台启动 backend 和 frontend。
+- `./runtime/doc-guard up`：前台启动 backend 和 frontend，适合 systemd 调用。
+- `./runtime/doc-guard stop`：停止后台进程。
+- `./runtime/doc-guard restart`：重启后台进程。
+- `./runtime/doc-guard status`：查看进程、HTTP 健康状态、配置和日志路径。
+- `./runtime/doc-guard logs [backend|frontend]`：查看日志。
+- `./runtime/doc-guard install-user-bin [--force]`：安装 `doc-guard` 命令到 `$HOME/.local/bin`。
+- `./runtime/doc-guard uninstall-user-bin`：删除用户级 `doc-guard` 命令软链接。
+- `./runtime/doc-guard install-user-service`：安装并启动 `systemd --user` 服务。
+- `./runtime/doc-guard uninstall-user-service`：卸载 `systemd --user` 服务。
 
-根目录的 `install.sh` 和 `uninstall.sh` 是对 `runtime/docguard install-user-bin` / `uninstall-user-bin` 的薄封装，便于直接安装或移除 `docguard` 命令。
+根目录的 `install.sh` 和 `uninstall.sh` 是对 `runtime/doc-guard install-user-bin` / `uninstall-user-bin` 的薄封装，便于直接安装或移除 `doc-guard` 命令。
 
 systemd 自启动：
 
 ```bash
-./runtime/docguard install-user-service
-systemctl --user status docguard.service
+./runtime/doc-guard install-user-service
+systemctl --user status doc-guard.service
 ```
 
 如需开机后自动拉起 user service，确保系统启用了用户 linger：

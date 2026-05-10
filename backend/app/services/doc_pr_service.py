@@ -63,7 +63,7 @@ class DocPRService:
         source_commit = commits[0]
         source_hash = source_commit.commit_hash[:7]
         module = self._slug(impacts[0].module_name or "docs")
-        branch_name = f"docguard/update-{module}-{source_hash}"
+        branch_name = f"doc-guard/update-{module}-{source_hash}"
 
         changed_files = self._collect_changed_files(commits)
         affected_docs = [p.document_path for p in patches]

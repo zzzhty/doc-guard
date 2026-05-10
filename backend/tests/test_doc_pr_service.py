@@ -116,7 +116,7 @@ def create_doc_pr_record(db_session):
         provider="gitea",
         pr_number=7,
         pr_url="https://git.example.test/acme/demo/pulls/7",
-        branch_name="docguard/update-auth-a1b2c3d",
+        branch_name="doc-guard/update-auth-a1b2c3d",
         base_branch="main",
         source_commit=commit.commit_hash,
         title="[DocGuard] Update auth documentation",
@@ -153,7 +153,7 @@ async def test_create_pr_calls_provider_and_persists_relationships(db_session, m
     doc_pr = await DocPRService(db_session).create_pr(project.id, [patch.id])
 
     assert [call[0] for call in fake_provider.calls] == ["create_branch", "commit_files", "create_pr"]
-    assert fake_provider.calls[0][1] == "docguard/update-auth-a1b2c3d"
+    assert fake_provider.calls[0][1] == "doc-guard/update-auth-a1b2c3d"
     committed_files = fake_provider.calls[1][3]
     assert committed_files[0].path == "docs/auth.md"
     assert committed_files[0].content == "# Auth\nnew\n"

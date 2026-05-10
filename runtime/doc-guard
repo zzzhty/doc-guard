@@ -12,7 +12,7 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "$SOURCE_PATH")" && pwd -P)"
 DEFAULT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
-CONFIG_FILE="${DOCGUARD_CONFIG:-${HOME}/.local/docguard/config.env}"
+CONFIG_FILE="${DOCGUARD_CONFIG:-${HOME}/.local/doc-guard/config.env}"
 
 DOCGUARD_ROOT="${DEFAULT_ROOT}"
 BACKEND_HOST="127.0.0.1"
@@ -22,23 +22,23 @@ FRONTEND_PORT="5173"
 BACKEND_RELOAD="1"
 UV_BIN="uv"
 PNPM_BIN="pnpm"
-LOG_DIR="${HOME}/.local/docguard/logs"
-RUN_DIR="${HOME}/.local/docguard/run"
+LOG_DIR="${HOME}/.local/doc-guard/logs"
+RUN_DIR="${HOME}/.local/doc-guard/run"
 
 usage() {
     cat <<'EOF'
-Usage: runtime/docguard <command>
+Usage: runtime/doc-guard <command>
 
 Commands:
-  init [--force]          Create ~/.local/docguard/config.env and runtime dirs
+  init [--force]          Create ~/.local/doc-guard/config.env and runtime dirs
   start                   Start backend and frontend in the background
   up                      Run backend and frontend in the foreground
   stop                    Stop background runtime processes
   restart                 Restart backend and frontend
   status                  Show process and HTTP health status
   logs [backend|frontend] Tail runtime logs
-  install-user-bin        Symlink this script to ~/.local/bin/docguard
-  uninstall-user-bin      Remove ~/.local/bin/docguard symlink
+  install-user-bin        Symlink this script to ~/.local/bin/doc-guard
+  uninstall-user-bin      Remove ~/.local/bin/doc-guard symlink
   install-user-service    Install and start systemd --user service
   uninstall-user-service  Stop and remove systemd --user service
   help                    Show this help
@@ -75,8 +75,8 @@ BACKEND_RELOAD=1
 UV_BIN=uv
 PNPM_BIN=pnpm
 
-LOG_DIR=$(quote_value "${HOME}/.local/docguard/logs")
-RUN_DIR=$(quote_value "${HOME}/.local/docguard/run")
+LOG_DIR=$(quote_value "${HOME}/.local/doc-guard/logs")
+RUN_DIR=$(quote_value "${HOME}/.local/doc-guard/run")
 
 # Optional backend settings:
 # LLM_API_KEY=
@@ -388,7 +388,7 @@ up_runtime() {
 install_user_service() {
     load_config
     local unit_dir="${HOME}/.config/systemd/user"
-    local unit_file="${unit_dir}/docguard.service"
+    local unit_file="${unit_dir}/doc-guard.service"
     mkdir -p "$unit_dir"
 
     cat >"$unit_file" <<EOF
@@ -400,8 +400,8 @@ After=network.target
 Type=simple
 WorkingDirectory=${DOCGUARD_ROOT}
 EnvironmentFile=${CONFIG_FILE}
-ExecStart=/usr/bin/env bash "${SCRIPT_DIR}/docguard" up
-ExecStop=/usr/bin/env bash "${SCRIPT_DIR}/docguard" stop
+ExecStart=/usr/bin/env bash "${SCRIPT_DIR}/doc-guard" up
+ExecStop=/usr/bin/env bash "${SCRIPT_DIR}/doc-guard" stop
 Restart=on-failure
 RestartSec=3
 
@@ -410,13 +410,13 @@ WantedBy=default.target
 EOF
 
     systemctl --user daemon-reload
-    systemctl --user enable --now docguard.service
+    systemctl --user enable --now doc-guard.service
     echo "Installed user service: $unit_file"
 }
 
 uninstall_user_service() {
-    local unit_file="${HOME}/.config/systemd/user/docguard.service"
-    systemctl --user disable --now docguard.service >/dev/null 2>&1 || true
+    local unit_file="${HOME}/.config/systemd/user/doc-guard.service"
+    systemctl --user disable --now doc-guard.service >/dev/null 2>&1 || true
     rm -f "$unit_file"
     systemctl --user daemon-reload >/dev/null 2>&1 || true
     echo "Removed user service: $unit_file"
@@ -425,8 +425,8 @@ uninstall_user_service() {
 install_user_bin() {
     local force="${1:-0}"
     local bin_dir="${DOCGUARD_BIN_DIR:-${HOME}/.local/bin}"
-    local link_path="${bin_dir}/docguard"
-    local script_path="${SCRIPT_DIR}/docguard"
+    local link_path="${bin_dir}/doc-guard"
+    local script_path="${SCRIPT_DIR}/doc-guard"
     mkdir -p "$bin_dir"
 
     if [[ -e "$link_path" || -L "$link_path" ]]; then
@@ -437,7 +437,7 @@ install_user_bin() {
             return 0
         else
             echo "Refusing to overwrite existing path: $link_path" >&2
-            echo "Use: ./runtime/docguard install-user-bin --force" >&2
+            echo "Use: ./runtime/doc-guard install-user-bin --force" >&2
             return 1
         fi
     fi
@@ -447,7 +447,7 @@ install_user_bin() {
 
     case ":${PATH}:" in
         *":${bin_dir}:"*)
-            echo "You can now run: docguard status"
+            echo "You can now run: doc-guard status"
             ;;
         *)
             echo "${bin_dir} is not in PATH."
@@ -459,8 +459,8 @@ install_user_bin() {
 
 uninstall_user_bin() {
     local bin_dir="${DOCGUARD_BIN_DIR:-${HOME}/.local/bin}"
-    local link_path="${bin_dir}/docguard"
-    local script_path="${SCRIPT_DIR}/docguard"
+    local link_path="${bin_dir}/doc-guard"
+    local script_path="${SCRIPT_DIR}/doc-guard"
 
     if [[ ! -e "$link_path" && ! -L "$link_path" ]]; then
         echo "Command is not installed: $link_path"

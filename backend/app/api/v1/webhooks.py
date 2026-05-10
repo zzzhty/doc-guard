@@ -29,7 +29,7 @@ async def gitea_webhook(request: Request, db: Session = Depends(get_db)):
 def handle_gitea_pull_request_event(payload: dict, db: Session) -> DocPR | None:
     pr_data = payload.get("pull_request", {})
     branch = pr_data.get("head", {}).get("ref", "")
-    if not branch.startswith("docguard/"):
+    if not branch.startswith("doc-guard/"):
         return None
 
     doc_pr = (
