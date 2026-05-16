@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import ChangeList from "../Changes/ChangeList";
 import { useDocContent, useDocTree } from "../../hooks/useDocs";
-import { useProject, useSyncProject } from "../../hooks/useProjects";
+import { usePreviewDocOps, useProject, useSaveDocOpsConfig, useSyncProject } from "../../hooks/useProjects";
 import type { DocTree } from "../../types/common";
 
 export default function ProjectDetail() {
@@ -11,7 +11,11 @@ export default function ProjectDetail() {
   const { data: project, isLoading, error } = useProject(projectId);
   const { data: docTree, isLoading: isDocsLoading } = useDocTree(projectId);
   const syncMutation = useSyncProject();
+  const previewDocOpsMutation = usePreviewDocOps();
+  const saveDocOpsMutation = useSaveDocOpsConfig();
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  const [docOpsDraft, setDocOpsDraft] = useState("");
+  const [docOpsMessage, setDocOpsMessage] = useState("");
   const { data: docContent, isLoading: isDocLoading } = useDocContent(projectId, selectedDoc);
 
   if (isLoading) {
@@ -32,6 +36,8 @@ export default function ProjectDetail() {
       </div>
     );
   }
+
+  const displayedDocOps = docOpsDraft || project.config_yaml || "";
 
   return (
     <div>
@@ -72,6 +78,70 @@ export default function ProjectDetail() {
             <p className="font-medium text-gray-900 mt-1">{item.value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">DocOps Config</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {project.config_yaml ? "Saved config is available for analysis." : "Generate a candidate config before analysis."}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setDocOpsMessage("");
+                previewDocOpsMutation.mutate(projectId, {
+                  onSuccess: (draft) => {
+                    setDocOpsDraft(draft.yaml);
+                    setDocOpsMessage(`Generated ${draft.modules.length} module mapping(s).`);
+                  },
+                  onError: (err) => setDocOpsMessage(err instanceof Error ? err.message : "Failed to generate config."),
+                });
+              }}
+              disabled={previewDocOpsMutation.isPending}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            >
+              {previewDocOpsMutation.isPending ? "Generating..." : "Generate Draft"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDocOpsMessage("");
+                saveDocOpsMutation.mutate(
+                  { id: projectId, configYaml: displayedDocOps },
+                  {
+                    onSuccess: () => {
+                      setDocOpsDraft("");
+                      setDocOpsMessage("DocOps config saved.");
+                    },
+                    onError: (err) => setDocOpsMessage(err instanceof Error ? err.message : "Failed to save config."),
+                  },
+                );
+              }}
+              disabled={!displayedDocOps.trim() || saveDocOpsMutation.isPending}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saveDocOpsMutation.isPending ? "Saving..." : "Save Config"}
+            </button>
+          </div>
+        </div>
+        <textarea
+          value={displayedDocOps}
+          onChange={(event) => setDocOpsDraft(event.target.value)}
+          placeholder="No DocOps config saved yet."
+          className="w-full min-h-64 bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto text-sm font-mono whitespace-pre"
+        />
+        {previewDocOpsMutation.data?.warnings.length ? (
+          <div className="mt-3 text-sm text-amber-700">
+            {previewDocOpsMutation.data.warnings.map((warning) => (
+              <p key={warning}>{warning}</p>
+            ))}
+          </div>
+        ) : null}
+        {docOpsMessage && <p className="text-sm text-gray-500 mt-3">{docOpsMessage}</p>}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">

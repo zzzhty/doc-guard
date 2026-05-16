@@ -10,7 +10,8 @@ from app.database.models.project import Project
 from app.git_providers import GitProvider
 from app.git_providers.gitea import GiteaGitProvider
 from app.git_providers.local import LocalGitProvider
-from app.services.config_parser import load_docops_from_repo
+from app.services.config_parser import load_docops_from_repo, parse_docops
+from app.services.docops_initializer import DocOpsDraft, DocOpsInitializer
 
 
 class ProjectService:
@@ -92,8 +93,42 @@ class ProjectService:
                     provider._repo.remote().fetch()
             except Exception:
                 pass
-        project.config_yaml = self._read_docops_yaml(project.local_path)
+        repo_docops = self._read_docops_yaml(project.local_path)
+        if repo_docops is not None:
+            project.config_yaml = repo_docops
         project.last_synced_at = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(project)
+        return project
+
+    def preview_docops_config(self, project_id: int) -> DocOpsDraft | None:
+        project = self.get_project(project_id)
+        if not project:
+            return None
+        return DocOpsInitializer().generate(project)
+
+    def initialize_docops_config(self, project_id: int, overwrite_existing: bool = False) -> DocOpsDraft | None:
+        project = self.get_project(project_id)
+        if not project:
+            return None
+        if project.config_yaml and not overwrite_existing:
+            raise ValueError("DocOps config already exists. Set overwrite_existing=true to replace it.")
+
+        draft = DocOpsInitializer().generate(project)
+        project.config_yaml = draft.yaml
+        project.updated_at = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(project)
+        draft.persisted = True
+        return draft
+
+    def save_docops_config(self, project_id: int, config_yaml: str) -> Project | None:
+        project = self.get_project(project_id)
+        if not project:
+            return None
+        parse_docops(config_yaml)
+        project.config_yaml = config_yaml
+        project.updated_at = datetime.utcnow()
         self.db.commit()
         self.db.refresh(project)
         return project

@@ -10,7 +10,7 @@ from app.database.models.doc_impact import DocImpact
 from app.database.models.project import Project
 from app.database.models.scanned_commit import ScannedCommit
 from app.services.commit_scanner import CommitScanner
-from app.services.config_parser import load_docops_from_repo
+from app.services.config_parser import load_docops_for_project
 from app.services.doc_scanner import DocScanner
 from app.services.llm_service import LLMService
 from app.services.module_matcher import ModuleMatcher
@@ -44,7 +44,7 @@ class ImpactService:
 
             changed_files = commit.changed_files or self._extract_changed_files(diff)
 
-            config = load_docops_from_repo(project.local_path)
+            config = load_docops_for_project(project)
             if not config:
                 logger.warning("No docops.yml found, using empty config")
                 from app.services.config_parser import DocOpsConfig

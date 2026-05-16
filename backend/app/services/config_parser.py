@@ -1,5 +1,6 @@
 import fnmatch
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import BaseModel
@@ -74,3 +75,16 @@ def load_docops_from_repo(repo_path: str) -> DocOpsConfig | None:
     if not config_path.exists():
         return None
     return parse_docops(config_path.read_text(encoding="utf-8"))
+
+
+def load_docops_for_project(project: Any) -> DocOpsConfig | None:
+    if getattr(project, "local_path", None):
+        config = load_docops_from_repo(project.local_path)
+        if config:
+            return config
+
+    config_yaml = getattr(project, "config_yaml", None)
+    if config_yaml:
+        return parse_docops(config_yaml)
+
+    return None

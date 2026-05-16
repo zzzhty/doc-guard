@@ -25,6 +25,24 @@ export interface ProjectListResponse {
   total: number;
 }
 
+export interface DocOpsModulePreview {
+  name: string;
+  owner: string;
+  code_paths: string[];
+  docs: string[];
+}
+
+export interface DocOpsPreviewResponse {
+  project_id: number;
+  yaml: string;
+  modules: DocOpsModulePreview[];
+  docs_root: string;
+  wiki_root: string;
+  meta_root: string;
+  warnings: string[];
+  persisted: boolean;
+}
+
 export interface Commit {
   id: number;
   project_id: number;

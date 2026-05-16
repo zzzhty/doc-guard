@@ -18,6 +18,32 @@ class ProjectUpdate(BaseModel):
     default_branch: str | None = None
 
 
+class DocOpsConfigUpdate(BaseModel):
+    config_yaml: str = Field(..., min_length=1)
+
+
+class DocOpsInitializeRequest(BaseModel):
+    overwrite_existing: bool = False
+
+
+class DocOpsModulePreview(BaseModel):
+    name: str
+    owner: str
+    code_paths: list[str]
+    docs: list[str]
+
+
+class DocOpsPreviewResponse(BaseModel):
+    project_id: int
+    yaml: str
+    modules: list[DocOpsModulePreview]
+    docs_root: str
+    wiki_root: str
+    meta_root: str
+    warnings: list[str] = Field(default_factory=list)
+    persisted: bool = False
+
+
 class ProjectResponse(BaseModel):
     id: int
     name: str

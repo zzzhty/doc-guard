@@ -3,6 +3,8 @@ import {
   createProject,
   deleteProject,
   getProject,
+  previewDocOps,
+  saveDocOpsConfig,
   listProjects,
   syncProject,
   updateProject,
@@ -53,5 +55,22 @@ export function useSyncProject() {
   return useMutation({
     mutationFn: (id: number) => syncProject(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function usePreviewDocOps() {
+  return useMutation({
+    mutationFn: (id: number) => previewDocOps(id),
+  });
+}
+
+export function useSaveDocOpsConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, configYaml }: { id: number; configYaml: string }) => saveDocOpsConfig(id, configYaml),
+    onSuccess: (_project, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["projects", variables.id] });
+    },
   });
 }
