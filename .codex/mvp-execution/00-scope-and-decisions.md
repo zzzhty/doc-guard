@@ -2,9 +2,9 @@
 
 ## Goal
 
-本 MVP 的目标是跑通 `README.md` 定义的 PR-first 文档治理闭环：
+本 MVP 的目标是跑通 `README.md` 定义的 PR-first 文档看门狗闭环：
 
-`连接目标项目 -> 扫描已合并 commit -> 判断受影响文档 -> 生成章节级补丁 -> 创建 docguard/* 分支 -> 创建 PR -> 跟踪合并状态 -> 更新看板`
+`连接目标项目 -> 扫描已合并 commit -> 判断受影响文档 -> 生成章节级补丁 -> 创建 doc-watcher/* 分支 -> 创建 PR -> 跟踪合并状态 -> 更新看板`
 
 ## Current State
 
@@ -16,7 +16,7 @@
 - 基于 `docops.yml` 和降级召回的文档影响分析。
 - 章节级文档 patch 生成、预览、人工编辑、approve/reject。
 - Gitea 真实分支、commit、PR 创建和状态刷新。
-- 文档债务看板与 DocGuard PR 管理页。
+- 文档债务看板与 DocWatcher PR 管理页。
 - 后端最小测试基线和前端现有 build/lint 基线。
 
 ## Out Of Scope
@@ -35,8 +35,8 @@
 - 状态主线：`pending_analysis -> patch_generated -> pr_created -> pr_merged`，旁路状态为 `ignored`、`false_positive`、`pr_rejected`。
 - Patch 策略：默认 `update_section`；支持 `append_section`、`create_wiki_note`、`mark_stale` 的最小能力；禁止 `full_rewrite`、`delete_doc`、`bulk_restructure`。
 - 前端主路径：`Project Detail -> Change Detail -> Impact List -> Patch Preview -> Create PR -> PR Status`。
-- PR 标题格式：`[DocGuard] Update {module} docs for {change_summary}`。
-- 分支格式：`docguard/{action}-{module}-{short_commit}`。
+- PR 标题格式：`[DocWatcher] Update {module} docs for {change_summary}`。
+- 分支格式：`doc-watcher/{action}-{module}-{short_commit}`。
 
 ## Shared Acceptance Criteria
 

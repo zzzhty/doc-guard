@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-DocGuard is split into a Python backend and a Vite/React frontend. Backend application code lives in `backend/app`: API routes are under `api/v1`, business logic under `services`, LLM adapters under `llm`, Git integrations under `git_providers`, database code under `database`, and Pydantic contracts under `schemas`. Backend tests belong in `backend/tests`.
+DocWatcher is split into a Python backend and a Vite/React frontend. Backend application code lives in `backend/app`: API routes are under `api/v1`, business logic under `services`, LLM adapters under `llm`, Git integrations under `git_providers`, database code under `database`, and Pydantic contracts under `schemas`. Backend tests belong in `backend/tests`.
 
 Frontend code lives in `frontend/src`: shared API clients in `api`, reusable UI in `components`, hooks in `hooks`, route views in `pages`, shared types in `types`, and static assets in `assets`. `README.md` is the source of truth for the PR-first document governance model.
 
@@ -29,7 +29,7 @@ Backend tests use `pytest`; name files `test_*.py` and place them in `backend/te
 
 ## Commit & Pull Request Guidelines
 
-The current history uses short, imperative summaries such as `Init DocGuard: ...`. Keep commit subjects concise and describe one logical change. Pull requests should include purpose, main changes, test/lint results, linked issues if applicable, and screenshots for visible UI changes.
+The current history uses short, imperative summaries such as `Init DocWatcher: ...`. Keep commit subjects concise and describe one logical change. Pull requests should include purpose, main changes, test/lint results, linked issues if applicable, and screenshots for visible UI changes.
 
 ## Security & Configuration Tips
 

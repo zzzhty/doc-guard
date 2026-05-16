@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    database_url: str = f"sqlite:///{Path(__file__).parent.parent / 'data' / 'docguard.db'}"
+    database_url: str = f"sqlite:///{Path(__file__).parent.parent / 'data' / 'docwatcher.db'}"
 
     llm_api_key: str = ""
     llm_base_url: str = "https://api.openai.com/v1"

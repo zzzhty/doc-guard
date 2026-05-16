@@ -21,7 +21,7 @@ async def gitea_webhook(request: Request, db: Session = Depends(get_db)):
     if event == "pull_request":
         doc_pr = handle_gitea_pull_request_event(payload, db)
         if doc_pr:
-            logger.info("Updated DocGuard PR %s to %s", doc_pr.id, doc_pr.status)
+            logger.info("Updated DocWatcher PR %s to %s", doc_pr.id, doc_pr.status)
 
     return {"status": "received"}
 
@@ -29,7 +29,7 @@ async def gitea_webhook(request: Request, db: Session = Depends(get_db)):
 def handle_gitea_pull_request_event(payload: dict, db: Session) -> DocPR | None:
     pr_data = payload.get("pull_request", {})
     branch = pr_data.get("head", {}).get("ref", "")
-    if not branch.startswith("doc-guard/"):
+    if not branch.startswith("doc-watcher/"):
         return None
 
     doc_pr = (

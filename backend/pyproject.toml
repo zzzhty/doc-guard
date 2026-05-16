@@ -1,7 +1,7 @@
 [project]
-name = "docguard-backend"
+name = "docwatcher-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "PR-first documentation watchdog backend"
 authors = [
     { name = "Tianyi", email = "tyz1024@gmail.com" }
 ]
@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-docguard-backend = "docguard_backend:main"
+docwatcher-backend = "docwatcher_backend:main"
 
 [build-system]
 requires = ["uv_build>=0.11.6,<0.12.0"]

@@ -2,11 +2,11 @@
 
 ## Goal
 
-把 approved patches 写入 `docguard/*` 分支，提交 docs/wiki 变更，并在 Gitea 创建真实 PR。完成后，数据库保存 PR number、URL、状态和关联文档项。
+把 approved patches 写入 `doc-watcher/*` 分支，提交 docs/wiki 变更，并在 Gitea 创建真实 PR。完成后，数据库保存 PR number、URL、状态和关联文档项。
 
 ## Current State
 
-已完成。`ProjectService.get_git_provider()` 会根据项目 provider 返回 `LocalGitProvider` 或 `GiteaGitProvider`。`DocPRService.create_pr()` 会验证 approved patches、创建 `docguard/*` 分支、提交文档变更、调用 Gitea PR API，并保存 PR number、URL、title、body、status 和关联 items。
+已完成。`ProjectService.get_git_provider()` 会根据项目 provider 返回 `LocalGitProvider` 或 `GiteaGitProvider`。`DocPRService.create_pr()` 会验证 approved patches、创建 `doc-watcher/*` 分支、提交文档变更、调用 Gitea PR API，并保存 PR number、URL、title、body、status 和关联 items。
 
 ## Deliverables
 
@@ -30,7 +30,7 @@
 ### Post-MVP Hardening
 
 - local provider 创建 doc branch 时不切换用户工作区；改用 temporary clone 或 git worktree。
-- PR branch 命名冲突时追加短序号：`docguard/update-auth-a1b2c3d-2`。
+- PR branch 命名冲突时追加短序号：`doc-watcher/update-auth-a1b2c3d-2`。
 - PR 描述已包含 changed files；后续可继续增强摘要质量。
 - Gitea close/refresh 已接入真实 provider；后续可增加冲突、权限和网络错误分类。
 
@@ -45,8 +45,8 @@
 ## Acceptance Criteria
 
 - 用户选择 approved patches 后，可以创建一个 Gitea PR。
-- Gitea 仓库出现 `docguard/*` 分支和文档 commit。
-- PR 标题符合 `[DocGuard] ...` 格式。
+- Gitea 仓库出现 `doc-watcher/*` 分支和文档 commit。
+- PR 标题符合 `[DocWatcher] ...` 格式。
 - PR 描述包含 source commit、changed files、affected docs、proposed changes、review notes、quality checks。
 - 数据库中 `DocPR` 和 `DocPRItem` 与 patches/impacts 正确关联。
 

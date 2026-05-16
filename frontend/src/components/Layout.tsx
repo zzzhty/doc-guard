@@ -15,7 +15,7 @@ export default function Layout() {
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <Link to="/dashboard" className="text-xl font-bold text-gray-900">
-            DocGuard
+            DocWatcher
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">
@@ -34,7 +34,7 @@ export default function Layout() {
           ))}
         </nav>
         <div className="p-4 border-t border-gray-200 text-xs text-gray-400">
-          DocGuard v0.1.0
+          DocWatcher v0.1.0
         </div>
       </aside>
       <main className="flex-1 overflow-auto">

@@ -12,9 +12,9 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "$SOURCE_PATH")" && pwd -P)"
 DEFAULT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
-CONFIG_FILE="${DOCGUARD_CONFIG:-${HOME}/.local/doc-guard/config.env}"
+CONFIG_FILE="${DOCWATCHER_CONFIG:-${HOME}/.local/doc-watcher/config.env}"
 
-DOCGUARD_ROOT="${DEFAULT_ROOT}"
+DOCWATCHER_ROOT="${DEFAULT_ROOT}"
 BACKEND_HOST="127.0.0.1"
 BACKEND_PORT="8000"
 FRONTEND_HOST="127.0.0.1"
@@ -22,23 +22,23 @@ FRONTEND_PORT="5173"
 BACKEND_RELOAD="1"
 UV_BIN="uv"
 PNPM_BIN="pnpm"
-LOG_DIR="${HOME}/.local/doc-guard/logs"
-RUN_DIR="${HOME}/.local/doc-guard/run"
+LOG_DIR="${HOME}/.local/doc-watcher/logs"
+RUN_DIR="${HOME}/.local/doc-watcher/run"
 
 usage() {
     cat <<'EOF'
-Usage: scripts/doc-guard <command>
+Usage: scripts/doc-watcher <command>
 
 Commands:
-  init [--force]          Create ~/.local/doc-guard/config.env and local run/log dirs
+  init [--force]          Create ~/.local/doc-watcher/config.env and local run/log dirs
   start                   Start backend and frontend in the background
   up                      Run backend and frontend in the foreground
   stop                    Stop background processes
   restart                 Restart backend and frontend
   status                  Show process and HTTP health status
   logs [backend|frontend] Tail backend/frontend logs
-  install-user-bin        Symlink this script to ~/.local/bin/doc-guard
-  uninstall-user-bin      Remove ~/.local/bin/doc-guard symlink
+  install-user-bin        Symlink this script to ~/.local/bin/doc-watcher
+  uninstall-user-bin      Remove ~/.local/bin/doc-watcher symlink
   install-user-service    Install and start systemd --user service
   uninstall-user-service  Stop and remove systemd --user service
   help                    Show this help
@@ -61,10 +61,10 @@ write_default_config() {
     fi
 
     cat >"$CONFIG_FILE" <<EOF
-# DocGuard local run config.
+# DocWatcher local run config.
 # This file is safe for shell source and systemd EnvironmentFile.
 
-DOCGUARD_ROOT=$(quote_value "$DEFAULT_ROOT")
+DOCWATCHER_ROOT=$(quote_value "$DEFAULT_ROOT")
 
 BACKEND_HOST=127.0.0.1
 BACKEND_PORT=8000
@@ -75,8 +75,8 @@ BACKEND_RELOAD=1
 UV_BIN=uv
 PNPM_BIN=pnpm
 
-LOG_DIR=$(quote_value "${HOME}/.local/doc-guard/logs")
-RUN_DIR=$(quote_value "${HOME}/.local/doc-guard/run")
+LOG_DIR=$(quote_value "${HOME}/.local/doc-watcher/logs")
+RUN_DIR=$(quote_value "${HOME}/.local/doc-watcher/run")
 
 # Optional backend settings:
 # LLM_API_KEY=
@@ -119,16 +119,16 @@ require_command() {
 }
 
 validate_repo() {
-    if [[ ! -d "$DOCGUARD_ROOT" ]]; then
-        echo "DOCGUARD_ROOT does not exist: $DOCGUARD_ROOT" >&2
+    if [[ ! -d "$DOCWATCHER_ROOT" ]]; then
+        echo "DOCWATCHER_ROOT does not exist: $DOCWATCHER_ROOT" >&2
         return 1
     fi
-    if [[ ! -f "$DOCGUARD_ROOT/backend/pyproject.toml" ]]; then
-        echo "Backend project not found under: $DOCGUARD_ROOT/backend" >&2
+    if [[ ! -f "$DOCWATCHER_ROOT/backend/pyproject.toml" ]]; then
+        echo "Backend project not found under: $DOCWATCHER_ROOT/backend" >&2
         return 1
     fi
-    if [[ ! -f "$DOCGUARD_ROOT/frontend/package.json" ]]; then
-        echo "Frontend project not found under: $DOCGUARD_ROOT/frontend" >&2
+    if [[ ! -f "$DOCWATCHER_ROOT/frontend/package.json" ]]; then
+        echo "Frontend project not found under: $DOCWATCHER_ROOT/frontend" >&2
         return 1
     fi
     require_command "$UV_BIN"
@@ -189,12 +189,12 @@ backend_command() {
         reload_args=(--reload)
     fi
 
-    cd "$DOCGUARD_ROOT/backend"
+    cd "$DOCWATCHER_ROOT/backend"
     exec "$UV_BIN" run python -m uvicorn app.main:app "${reload_args[@]}" --host "$BACKEND_HOST" --port "$BACKEND_PORT"
 }
 
 frontend_command() {
-    cd "$DOCGUARD_ROOT/frontend"
+    cd "$DOCWATCHER_ROOT/frontend"
     exec "$PNPM_BIN" dev --host "$FRONTEND_HOST" --port "$FRONTEND_PORT"
 }
 
@@ -375,7 +375,7 @@ up_runtime() {
     frontend_pid="$!"
     echo "$frontend_pid" >"$(frontend_pid_file)"
 
-    echo "DocGuard running"
+    echo "DocWatcher running"
     echo "Backend:  http://${BACKEND_HOST}:${BACKEND_PORT}"
     echo "Frontend: http://${FRONTEND_HOST}:${FRONTEND_PORT}"
     echo "Logs:     ${LOG_DIR}"
@@ -388,20 +388,20 @@ up_runtime() {
 install_user_service() {
     load_config
     local unit_dir="${HOME}/.config/systemd/user"
-    local unit_file="${unit_dir}/doc-guard.service"
+    local unit_file="${unit_dir}/doc-watcher.service"
     mkdir -p "$unit_dir"
 
     cat >"$unit_file" <<EOF
 [Unit]
-Description=DocGuard local service
+Description=DocWatcher local service
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=${DOCGUARD_ROOT}
+WorkingDirectory=${DOCWATCHER_ROOT}
 EnvironmentFile=${CONFIG_FILE}
-ExecStart=/usr/bin/env bash "${SCRIPT_DIR}/doc-guard" up
-ExecStop=/usr/bin/env bash "${SCRIPT_DIR}/doc-guard" stop
+ExecStart=/usr/bin/env bash "${SCRIPT_DIR}/doc-watcher" up
+ExecStop=/usr/bin/env bash "${SCRIPT_DIR}/doc-watcher" stop
 Restart=on-failure
 RestartSec=3
 
@@ -410,13 +410,13 @@ WantedBy=default.target
 EOF
 
     systemctl --user daemon-reload
-    systemctl --user enable --now doc-guard.service
+    systemctl --user enable --now doc-watcher.service
     echo "Installed user service: $unit_file"
 }
 
 uninstall_user_service() {
-    local unit_file="${HOME}/.config/systemd/user/doc-guard.service"
-    systemctl --user disable --now doc-guard.service >/dev/null 2>&1 || true
+    local unit_file="${HOME}/.config/systemd/user/doc-watcher.service"
+    systemctl --user disable --now doc-watcher.service >/dev/null 2>&1 || true
     rm -f "$unit_file"
     systemctl --user daemon-reload >/dev/null 2>&1 || true
     echo "Removed user service: $unit_file"
@@ -424,9 +424,9 @@ uninstall_user_service() {
 
 install_user_bin() {
     local force="${1:-0}"
-    local bin_dir="${DOCGUARD_BIN_DIR:-${HOME}/.local/bin}"
-    local link_path="${bin_dir}/doc-guard"
-    local script_path="${SCRIPT_DIR}/doc-guard"
+    local bin_dir="${DOCWATCHER_BIN_DIR:-${HOME}/.local/bin}"
+    local link_path="${bin_dir}/doc-watcher"
+    local script_path="${SCRIPT_DIR}/doc-watcher"
     mkdir -p "$bin_dir"
 
     if [[ -e "$link_path" || -L "$link_path" ]]; then
@@ -437,7 +437,7 @@ install_user_bin() {
             return 0
         else
             echo "Refusing to overwrite existing path: $link_path" >&2
-            echo "Use: ./scripts/doc-guard install-user-bin --force" >&2
+            echo "Use: ./scripts/doc-watcher install-user-bin --force" >&2
             return 1
         fi
     fi
@@ -447,7 +447,7 @@ install_user_bin() {
 
     case ":${PATH}:" in
         *":${bin_dir}:"*)
-            echo "You can now run: doc-guard status"
+            echo "You can now run: doc-watcher status"
             ;;
         *)
             echo "${bin_dir} is not in PATH."
@@ -458,16 +458,16 @@ install_user_bin() {
 }
 
 uninstall_user_bin() {
-    local bin_dir="${DOCGUARD_BIN_DIR:-${HOME}/.local/bin}"
-    local link_path="${bin_dir}/doc-guard"
-    local script_path="${SCRIPT_DIR}/doc-guard"
+    local bin_dir="${DOCWATCHER_BIN_DIR:-${HOME}/.local/bin}"
+    local link_path="${bin_dir}/doc-watcher"
+    local script_path="${SCRIPT_DIR}/doc-watcher"
 
     if [[ ! -e "$link_path" && ! -L "$link_path" ]]; then
         echo "Command is not installed: $link_path"
         return 0
     fi
     if [[ ! -L "$link_path" || "$(readlink "$link_path")" != "$script_path" ]]; then
-        echo "Refusing to remove non-DocGuard path: $link_path" >&2
+        echo "Refusing to remove non-DocWatcher path: $link_path" >&2
         return 1
     fi
 

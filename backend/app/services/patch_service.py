@@ -95,7 +95,7 @@ class PatchService:
                 SimpleNamespace(
                     target_section_heading="",
                     new_content=(
-                        "DocGuard identified this document as potentially affected by the source change. "
+                        "DocWatcher identified this document as potentially affected by the source change. "
                         "LLM_API_KEY is not configured, so this patch is a review marker rather than a generated "
                         "documentation rewrite."
                     ),
@@ -125,10 +125,10 @@ class PatchService:
             return apply_patch_to_section(original_content, heading, new_content), "update_section"
 
         if change_type == "mark_stale":
-            marker = "> [!WARNING]\n> DocGuard marked this document as potentially stale for manual review.\n"
+            marker = "> [!WARNING]\n> DocWatcher marked this document as potentially stale for manual review.\n"
             return f"{marker}\n{original_content}" if original_content else marker, "mark_stale"
 
-        section_heading = heading if heading.startswith("#") else f"## {heading or 'DocGuard Review Required'}"
+        section_heading = heading if heading.startswith("#") else f"## {heading or 'DocWatcher Review Required'}"
         section = f"{section_heading}\n\n{new_content}".strip()
         separator = "\n\n" if original_content.strip() else ""
         return f"{original_content.rstrip()}{separator}{section}\n", "append_section"

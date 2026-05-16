@@ -55,10 +55,10 @@ def test_gitea_pull_request_webhook_marks_doc_pr_merged(db_session):
         provider="gitea",
         pr_number=7,
         pr_url="https://git.example.test/acme/demo/pulls/7",
-        branch_name="doc-guard/update-auth-a1b2c3d",
+        branch_name="doc-watcher/update-auth-a1b2c3d",
         base_branch="main",
         source_commit=commit.commit_hash,
-        title="[DocGuard] Update auth documentation",
+        title="[DocWatcher] Update auth documentation",
         status="open",
     )
     db_session.add(doc_pr)
@@ -86,7 +86,7 @@ def test_gitea_pull_request_webhook_marks_doc_pr_merged(db_session):
                 "state": "closed",
                 "merged": True,
                 "merged_at": "2026-05-05T08:00:00Z",
-                "head": {"ref": "doc-guard/update-auth-a1b2c3d"},
+                "head": {"ref": "doc-watcher/update-auth-a1b2c3d"},
             },
         },
         db_session,

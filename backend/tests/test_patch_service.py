@@ -75,7 +75,7 @@ async def test_generate_patch_without_llm_appends_review_section(db_session, tmp
     assert patch.change_type == "append_section"
     assert "# Guide" in patch.patched_content
     assert "Old auth docs" in patch.patched_content
-    assert "## DocGuard Review Required" in patch.patched_content
+    assert "## DocWatcher Review Required" in patch.patched_content
     assert "LLM_API_KEY is not configured" in patch.quality_report
     assert patch.status == "pending"
     assert impact.patch_id == patch.id

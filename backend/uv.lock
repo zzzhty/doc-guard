@@ -87,7 +87,7 @@ wheels = [
 ]
 
 [[package]]
-name = "docguard-backend"
+name = "docwatcher-backend"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

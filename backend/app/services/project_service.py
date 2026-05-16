@@ -24,7 +24,7 @@ class ProjectService:
 
         local_path = data.get("local_path")
         if not local_path:
-            local_path = os.path.join(os.path.expanduser("~"), ".docguard", "repos", name)
+            local_path = os.path.join(os.path.expanduser("~"), ".doc-watcher", "repos", name)
 
         from git import Repo
 

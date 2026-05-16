@@ -49,7 +49,7 @@ class DocPRService:
         if len(impacts) != len(set(impact_ids)):
             raise ValueError("Some patch impacts were not found")
         if any(i.doc_pr_id for i in impacts):
-            raise ValueError("One or more patches already belong to a DocGuard PR")
+            raise ValueError("One or more patches already belong to a DocWatcher PR")
 
         commit_ids = {i.commit_id for i in impacts}
         if len(commit_ids) != 1:
@@ -63,7 +63,7 @@ class DocPRService:
         source_commit = commits[0]
         source_hash = source_commit.commit_hash[:7]
         module = self._slug(impacts[0].module_name or "docs")
-        branch_name = f"doc-guard/update-{module}-{source_hash}"
+        branch_name = f"doc-watcher/update-{module}-{source_hash}"
 
         changed_files = self._collect_changed_files(commits)
         affected_docs = [p.document_path for p in patches]
@@ -172,7 +172,7 @@ class DocPRService:
         commit_msg = (
             f"docs({module}): update documentation\n\n"
             f"Source commit: {source_commit.commit_hash}\n"
-            "Generated-by: DocGuard"
+            "Generated-by: DocWatcher"
         )
         if not provider.commit_files(branch_name, commit_msg, files):
             raise RuntimeError(f"Failed to commit documentation changes to {branch_name}")
@@ -201,7 +201,7 @@ class DocPRService:
                 logger.warning("Failed to generate PR description with LLM: %s", exc)
 
         return SimpleNamespace(
-            title=f"[DocGuard] Update {module} documentation",
+            title=f"[DocWatcher] Update {module} documentation",
             body=self._fallback_pr_body(
                 commit=commit,
                 changed_files=changed_files,
@@ -222,7 +222,7 @@ class DocPRService:
         commit_title = commit.message.splitlines()[0] if commit.message else ""
         return "\n\n".join(
             [
-                "## Summary\nDocGuard generated this documentation update from approved patch previews.",
+                "## Summary\nDocWatcher generated this documentation update from approved patch previews.",
                 (
                     "## Source Change\n"
                     f"- Source commit: `{commit.commit_hash}`\n"

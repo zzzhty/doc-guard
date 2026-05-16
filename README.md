@@ -1,14 +1,16 @@
-# DocGuard
+# DocWatcher
 
-DocGuard 是一个 **PR/MR-first 的 AI 文档治理平台**。它不直接修改目标项目主分支，而是在代码变更后只读分析代码和文档，生成可审查的文档补丁，并通过 `doc-guard/*` 分支和 PR/MR 提交给团队 review。
+DocWatcher 是一个 **PR/MR-first 的 AI 文档治理平台**，也是代码库的文档看门狗。它不直接修改目标项目主分支，而是在代码变更后只读分析代码和文档，发现文档漂移，生成可审查的文档补丁，并通过 `doc-watcher/*` 分支和 PR/MR 提交给团队 review。
+
+产品定位：**a watchdog for drifting docs**。DocWatcher 盯住代码变更与文档之间的偏差，但所有写入都走人工可审查的 PR。
 
 本文是项目方案、当前进度和执行方向的统一入口。更细的 milestone 执行任务放在 `.codex/mvp-execution/`，旧的初版方案和进度 review 不再单独维护。
 
-命名约定：`DocGuard` 是产品展示名，用于 README 正文、UI、PR 标题和生成标记；`doc-guard` 是机器可读 slug，用于仓库名、CLI 命令、脚本路径、systemd service 和自动创建的 Git 分支前缀。
+命名约定：`DocWatcher` 是产品展示名，用于 README 正文、UI、PR 标题和生成标记；`doc-watcher` 是机器可读 slug，用于仓库名、CLI 命令、脚本路径、systemd service 和自动创建的 Git 分支前缀。
 
 ## Core Principles
 
-- 代码只读：DocGuard 不修改业务代码，不绕过分支保护。
+- 代码只读：DocWatcher 不修改业务代码，不绕过分支保护。
 - 文档可写：只允许修改目标项目中的 `docs/`、`wiki/`、`meta/` 和 `docops.yml` 等文档治理路径。
 - 主分支不直写：正式文档必须通过 PR/MR。
 - LLM 不直接落主干：LLM 只生成候选变更，最终由人 review。
@@ -20,24 +22,24 @@ MVP 要优先跑通这条闭环：
 
 ```text
 用户接入 Git 项目
-  -> DocGuard 读取 docops.yml
+  -> DocWatcher 读取 docops.yml
   -> 扫描已合并 commit
   -> 根据 changed files 匹配模块和候选文档
   -> LLM 判断文档影响范围
   -> LLM 生成章节级文档补丁
   -> 系统执行质量检查
-  -> 创建 doc-guard/* 分支
+  -> 创建 doc-watcher/* 分支
   -> 提交 docs/wiki 修改
   -> 创建 PR/MR
   -> 团队 review 后合并
-  -> DocGuard 更新文档债务状态和看板
+  -> DocWatcher 更新文档债务状态和看板
 ```
 
 当前主线固定为 **Local -> Gitea**：先补齐本地 Git 项目的只读扫描、影响分析和补丁预览，再接入 Gitea 的真实分支和 PR 创建。GitLab/GitHub 保留接口方向，但不进入当前 MVP。
 
 ## Target Repository Contract
 
-DocGuard 默认面向这样的目标项目结构：
+DocWatcher 默认面向这样的目标项目结构：
 
 ```text
 my-project/
@@ -51,7 +53,7 @@ my-project/
 
 默认权限约定：
 
-| 路径 | 用途 | DocGuard 默认权限 |
+| 路径 | 用途 | DocWatcher 默认权限 |
 | --- | --- | --- |
 | `src/` | 业务代码 | 只读 |
 | `tests/` | 测试代码 | 只读 |
@@ -75,8 +77,8 @@ docs:
 git:
   provider: gitea
   default_branch: main
-  branch_prefix: doc-guard/
-  pr_title_prefix: "[DocGuard]"
+  branch_prefix: doc-watcher/
+  pr_title_prefix: "[DocWatcher]"
 
 write_policy:
   code:
@@ -110,9 +112,9 @@ modules:
 - `docops.yml` 解析、模块匹配、文档扫描、commit 扫描、impact、patch、Doc PR 模型与服务已有初版。
 - 文档影响分析已支持 docops 候选、无 docops 路径相似度降级、重复分析复用结果、无 LLM key 的保守 heuristic 结果。
 - 补丁生成已保证输出完整文档，支持章节替换、未命中章节时追加 review section、编辑、approve/reject、质量报告预览和 approved patch 创建 PR。
-- `DocPRService` 已能校验 approved patches、限制文档写入路径、创建 `doc-guard/*` 分支、提交文档修改、创建 Gitea PR、刷新/关闭 PR，并保存 PR number、URL、body 和 items。
+- `DocPRService` 已能校验 approved patches、限制文档写入路径、创建 `doc-watcher/*` 分支、提交文档修改、创建 Gitea PR、刷新/关闭 PR，并保存 PR number、URL、body 和 items。
 - Dashboard API 已统计 commits、impact 状态、高风险文档、open/merged/rejected PR，并提供最近 impact 活动。
-- Gitea webhook 可处理 `doc-guard/*` pull_request 事件，把 merged/closed/open 状态同步到 `DocPR`、`DocPRItem` 和 `DocImpact`。
+- Gitea webhook 可处理 `doc-watcher/*` pull_request 事件，把 merged/closed/open 状态同步到 `DocPR`、`DocPRItem` 和 `DocImpact`。
 - 前端已有真实 Dashboard、项目列表、项目接入、项目详情、docops 状态、文档树/内容浏览、commit 扫描列表、commit detail、patch preview 和 Doc PR 管理页。
 - 本地只读闭环已支持扫描指定 commit 和最近 commit，并保存 changed files。
 - 后端测试覆盖 `docops.yml` 解析、模块匹配、文档工具、扫描、impact、patch、Doc PR、Gitea provider、Dashboard 和 webhook。
@@ -129,7 +131,7 @@ Post-MVP 加固项：
    当前 local commit 流程会切换目标仓库分支并 reset working tree。产品化前应改为 worktree 或临时 clone。
 
 2. **Webhook 可信度**
-   当前 webhook 只按 `doc-guard/*` 分支和本地 PR 记录匹配事件；后续必须补签名和仓库校验。
+   当前 webhook 只按 `doc-watcher/*` 分支和本地 PR 记录匹配事件；后续必须补签名和仓库校验。
 
 3. **真实环境集成**
    自动测试使用 fake provider，不依赖真实 Gitea；上线前仍需要用真实 Gitea 仓库做手动验收。
@@ -144,7 +146,7 @@ Post-MVP 加固项：
 | M1 Local Readonly Loop | 本地项目只读闭环 | 已完成：接入项目、读取 docops、浏览 docs/wiki、查看 commit diff |
 | M2 Impact Analysis Loop | 文档影响分析 | 已完成：commit detail 可触发分析并展示影响文档、等级、原因 |
 | M3 Patch Preview And Quality Gate | 补丁预览与质量门禁 | 已完成：生成完整文档 patch，支持预览、编辑、approve/reject |
-| M4 Gitea PR-First Loop | Gitea PR 创建 | 已完成：创建 `doc-guard/*` 分支、提交文档修改、创建真实 Gitea PR |
+| M4 Gitea PR-First Loop | Gitea PR 创建 | 已完成：创建 `doc-watcher/*` 分支、提交文档修改、创建真实 Gitea PR |
 | M5 Dashboard And Close Loop | 看板和状态闭环 | 已完成：PR 合并/关闭后更新 impact 状态和 Dashboard |
 
 ## MVP Acceptance Criteria
@@ -156,7 +158,7 @@ MVP 完成时必须可以演示：
 3. 扫描某个代码 commit。
 4. 判断受影响文档。
 5. 生成章节级文档补丁。
-6. 创建 `doc-guard/*` 分支。
+6. 创建 `doc-watcher/*` 分支。
 7. 提交 `docs/` 或 `wiki/` 修改。
 8. 创建 PR/MR。
 9. PR 描述说明来源 commit、影响文档和需要确认的事项。
@@ -166,17 +168,17 @@ MVP 完成时必须可以演示：
 
 ## Generated PR Contract
 
-DocGuard 创建的分支命名：
+DocWatcher 创建的分支命名：
 
 ```text
-doc-guard/{action}-{module}-{short_commit}
+doc-watcher/{action}-{module}-{short_commit}
 ```
 
 示例：
 
 ```text
-doc-guard/update-auth-a1b2c3d
-doc-guard/add-env-docs-b2c3d4e
+doc-watcher/update-auth-a1b2c3d
+doc-watcher/add-env-docs-b2c3d4e
 ```
 
 Commit message 示例：
@@ -185,7 +187,7 @@ Commit message 示例：
 docs(auth): update token refresh documentation
 
 Source commit: a1b2c3d
-Generated-by: DocGuard
+Generated-by: DocWatcher
 ```
 
 PR 描述必须包含：
@@ -221,7 +223,7 @@ PR 描述必须包含：
 
 MVP 页面目标：
 
-- `/dashboard`：真实文档债务和 DocGuard PR 状态。
+- `/dashboard`：真实文档债务和 DocWatcher PR 状态。
 - `/projects`：项目列表。
 - `/projects/connect`：连接 local/Gitea 项目。
 - `/projects/:id`：项目详情、docops 状态、文档树和 commit 列表。
@@ -231,49 +233,49 @@ MVP 页面目标：
 
 ## Development Commands
 
-推荐使用 `scripts/doc-guard` 一键启动本地前后端：
+推荐使用 `scripts/doc-watcher` 一键启动本地前后端：
 
 ```bash
-./scripts/doc-guard init
-./scripts/doc-guard start
-./scripts/doc-guard status
-./scripts/doc-guard logs
-./scripts/doc-guard stop
+./scripts/doc-watcher init
+./scripts/doc-watcher start
+./scripts/doc-watcher status
+./scripts/doc-watcher logs
+./scripts/doc-watcher stop
 ```
 
-本地运行配置保存到 `$HOME/.local/doc-guard/config.env`，日志保存到 `$HOME/.local/doc-guard/logs`，pid 文件保存到 `$HOME/.local/doc-guard/run`。默认后端运行在 `127.0.0.1:8000`，前端运行在 `127.0.0.1:5173`，前端 `/api` 会代理到配置中的后端地址。
+本地运行配置保存到 `$HOME/.local/doc-watcher/config.env`，日志保存到 `$HOME/.local/doc-watcher/logs`，pid 文件保存到 `$HOME/.local/doc-watcher/run`。默认后端运行在 `127.0.0.1:8000`，前端运行在 `127.0.0.1:5173`，前端 `/api` 会代理到配置中的后端地址。
 
-如果希望直接执行 `doc-guard` 命令，可安装用户级软链接：
+如果希望直接执行 `doc-watcher` 命令，可安装用户级软链接：
 
 ```bash
 ./install.sh
-doc-guard start
-doc-guard status
+doc-watcher start
+doc-watcher status
 ```
 
-默认链接位置是 `$HOME/.local/bin/doc-guard`。如果 `$HOME/.local/bin` 不在 `PATH`，脚本会打印需要加入 shell 配置的 `export PATH=...`。
+默认链接位置是 `$HOME/.local/bin/doc-watcher`。如果 `$HOME/.local/bin` 不在 `PATH`，脚本会打印需要加入 shell 配置的 `export PATH=...`。
 
 可用命令：
 
-- `./scripts/doc-guard init [--force]`：创建或重置本地运行配置。
-- `./scripts/doc-guard start`：后台启动 backend 和 frontend。
-- `./scripts/doc-guard up`：前台启动 backend 和 frontend，适合 systemd 调用。
-- `./scripts/doc-guard stop`：停止后台进程。
-- `./scripts/doc-guard restart`：重启后台进程。
-- `./scripts/doc-guard status`：查看进程、HTTP 健康状态、配置和日志路径。
-- `./scripts/doc-guard logs [backend|frontend]`：查看日志。
-- `./scripts/doc-guard install-user-bin [--force]`：安装 `doc-guard` 命令到 `$HOME/.local/bin`。
-- `./scripts/doc-guard uninstall-user-bin`：删除用户级 `doc-guard` 命令软链接。
-- `./scripts/doc-guard install-user-service`：安装并启动 `systemd --user` 服务。
-- `./scripts/doc-guard uninstall-user-service`：卸载 `systemd --user` 服务。
+- `./scripts/doc-watcher init [--force]`：创建或重置本地运行配置。
+- `./scripts/doc-watcher start`：后台启动 backend 和 frontend。
+- `./scripts/doc-watcher up`：前台启动 backend 和 frontend，适合 systemd 调用。
+- `./scripts/doc-watcher stop`：停止后台进程。
+- `./scripts/doc-watcher restart`：重启后台进程。
+- `./scripts/doc-watcher status`：查看进程、HTTP 健康状态、配置和日志路径。
+- `./scripts/doc-watcher logs [backend|frontend]`：查看日志。
+- `./scripts/doc-watcher install-user-bin [--force]`：安装 `doc-watcher` 命令到 `$HOME/.local/bin`。
+- `./scripts/doc-watcher uninstall-user-bin`：删除用户级 `doc-watcher` 命令软链接。
+- `./scripts/doc-watcher install-user-service`：安装并启动 `systemd --user` 服务。
+- `./scripts/doc-watcher uninstall-user-service`：卸载 `systemd --user` 服务。
 
-根目录的 `install.sh` 和 `uninstall.sh` 是对 `scripts/doc-guard install-user-bin` / `uninstall-user-bin` 的薄封装，便于直接安装或移除 `doc-guard` 命令。
+根目录的 `install.sh` 和 `uninstall.sh` 是对 `scripts/doc-watcher install-user-bin` / `uninstall-user-bin` 的薄封装，便于直接安装或移除 `doc-watcher` 命令。
 
 systemd 自启动：
 
 ```bash
-./scripts/doc-guard install-user-service
-systemctl --user status doc-guard.service
+./scripts/doc-watcher install-user-service
+systemctl --user status doc-watcher.service
 ```
 
 如需开机后自动拉起 user service，确保系统启用了用户 linger：

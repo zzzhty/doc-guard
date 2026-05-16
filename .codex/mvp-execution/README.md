@@ -1,4 +1,4 @@
-# DocGuard MVP Execution Pack
+# DocWatcher MVP Execution Pack
 
 本目录把 `README.md` 中的产品 guide 和当前进度转成可执行工程计划。执行主线固定为 **Local -> Gitea**：先补齐本地只读闭环和补丁安全性，再接真实 Gitea PR。
 
@@ -21,7 +21,7 @@
 2. 完成 `02-local-readonly-loop.md`，让用户能接入本地 Git 项目、读取 `docops.yml`、浏览文档和查看 commit diff。
 3. 完成 `03-impact-analysis-loop.md`，让扫描 commit 可以产生可解释的文档影响结果。
 4. 完成 `04-patch-preview-quality-gate.md`，修复 patch 覆盖风险，并提供人工预览/编辑/审批。
-5. 完成 `05-gitea-pr-first-loop.md`，创建真实 `docguard/*` 分支和 Gitea PR。
+5. 完成 `05-gitea-pr-first-loop.md`，创建真实 `doc-watcher/*` 分支和 Gitea PR。
 6. 完成 `06-dashboard-close-loop.md`，把 PR 状态回流到文档债务看板。
 
 ## 全局执行约束

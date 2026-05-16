@@ -1,34 +1,34 @@
-class DocGuardError(Exception):
-    """Base exception for DocGuard."""
+class DocWatcherError(Exception):
+    """Base exception for DocWatcher."""
 
 
-class ProjectNotFoundError(DocGuardError):
+class ProjectNotFoundError(DocWatcherError):
     """Project not found."""
 
 
-class ProjectConnectionError(DocGuardError):
+class ProjectConnectionError(DocWatcherError):
     """Failed to connect to project repository."""
 
 
-class CommitNotFoundError(DocGuardError):
+class CommitNotFoundError(DocWatcherError):
     """Commit not found."""
 
 
-class GitProviderError(DocGuardError):
+class GitProviderError(DocWatcherError):
     """Git provider operation failed."""
 
 
-class LLMError(DocGuardError):
+class LLMError(DocWatcherError):
     """LLM API call failed."""
 
 
-class PatchGenerationError(DocGuardError):
+class PatchGenerationError(DocWatcherError):
     """Patch generation failed."""
 
 
-class PRCreationError(DocGuardError):
+class PRCreationError(DocWatcherError):
     """PR creation failed."""
 
 
-class ConfigParseError(DocGuardError):
+class ConfigParseError(DocWatcherError):
     """docops.yml parsing failed."""

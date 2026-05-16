@@ -1,6 +1,6 @@
-# DocGuard Frontend
+# DocWatcher Frontend
 
-React + TypeScript + Vite frontend for DocGuard.
+React + TypeScript + Vite frontend for DocWatcher.
 
 ## Commands
 

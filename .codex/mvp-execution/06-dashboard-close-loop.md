@@ -2,18 +2,18 @@
 
 ## Goal
 
-让用户能在看板中看到文档债务和 DocGuard PR 状态，并在 PR 合并或关闭后同步更新 impact 状态，形成 MVP 闭环。
+让用户能在看板中看到文档债务和 DocWatcher PR 状态，并在 PR 合并或关闭后同步更新 impact 状态，形成 MVP 闭环。
 
 ## Current State
 
-已完成。后端 `/dashboard/projects/{project_id}` 返回真实统计和最近 impact 活动；Doc PR list/get/refresh/close 路由已接入状态同步；前端 Dashboard 不再使用占位数据，并新增项目内 Doc PR 管理页；Gitea pull_request webhook 会按 `docguard/*` 分支回写 merged/closed/open 状态。
+已完成。后端 `/dashboard/projects/{project_id}` 返回真实统计和最近 impact 活动；Doc PR list/get/refresh/close 路由已接入状态同步；前端 Dashboard 不再使用占位数据，并新增项目内 Doc PR 管理页；Gitea pull_request webhook 会按 `doc-watcher/*` 分支回写 merged/closed/open 状态。
 
 ## Deliverables
 
 - [x] Dashboard 展示真实项目统计：待分析、已生成 patch、PR open/merged/rejected、高风险文档。
-- [x] Doc PR 管理页展示所有 DocGuard PR，支持刷新状态和打开外部 PR URL。
+- [x] Doc PR 管理页展示所有 DocWatcher PR，支持刷新状态和打开外部 PR URL。
 - [x] `refresh-status` 查询 provider 的真实 PR 状态。
-- [x] Gitea webhook 接收到 DocGuard PR 合并/关闭事件时更新 `DocPR`、`DocPRItem`、`DocImpact`。
+- [x] Gitea webhook 接收到 DocWatcher PR 合并/关闭事件时更新 `DocPR`、`DocPRItem`、`DocImpact`。
 - [x] `acceptance-checklist.md` 的 10 条 MVP 验收项全部可验证。
 
 ## Task Breakdown

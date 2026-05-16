@@ -12,7 +12,7 @@ class PRAuthor(BaseLLMAgent):
         patch_summaries = context.get("patch_summaries", [])
         review_notes = context.get("review_notes", [])
 
-        return f"""You are a PR description writer for DocGuard, an AI documentation governance bot. Write a PR title and description for a documentation update PR.
+        return f"""You are a PR description writer for DocWatcher, an AI documentation governance bot. Write a PR title and description for a documentation update PR.
 
 Source Commit: {commit_hash}
 Commit Message: {commit_message}
@@ -30,7 +30,7 @@ Review Notes:
 {chr(10).join(f"- {n}" for n in review_notes) if review_notes else "None"}
 
 Output a JSON object with:
-- title: The PR title (format: "[DocGuard] Update {{module}} docs for {{change_summary}}")
+- title: The PR title (format: "[DocWatcher] Update {{module}} docs for {{change_summary}}")
 - body: The full PR description in markdown, including Summary, Source Change, Affected Docs, Proposed Changes, Review Notes, and Quality Checks sections
 """
 

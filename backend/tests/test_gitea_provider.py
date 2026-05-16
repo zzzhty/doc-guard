@@ -15,16 +15,16 @@ def test_commit_files_updates_existing_file_with_sha_and_creates_new_file():
 
     def fake_request(method, path, json_data=None):
         calls.append((method, path, json_data))
-        if method == "GET" and path == "/contents/docs/existing.md?ref=doc-guard/test":
+        if method == "GET" and path == "/contents/docs/existing.md?ref=doc-watcher/test":
             return {"sha": "abc123"}
-        if method == "GET" and path == "/contents/docs/new.md?ref=doc-guard/test":
+        if method == "GET" and path == "/contents/docs/new.md?ref=doc-watcher/test":
             raise RuntimeError("not found")
         return {}
 
     provider._request = fake_request
 
     result = provider.commit_files(
-        "doc-guard/test",
+        "doc-watcher/test",
         "docs: update",
         [
             FileChange(path="docs/existing.md", content="updated"),
